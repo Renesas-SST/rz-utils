@@ -1,5 +1,5 @@
 ####################################
-# RZ/G2L SBC boards configurations
+# RZ/G2L SBC board configurations
 ####################################
 
 [rzg2l-sbc]
@@ -22,7 +22,7 @@ FIP = ["1", "100", "00000", "2", "8"]
 BID = ["1", "200", "1C700", "250", "122"]
 
 ####################################
-# RZ/G2L EVK boards configurations
+# RZ/G2L EVK board configurations
 ####################################
 
 [rzg2l-evk]
@@ -45,7 +45,7 @@ FIP = ["1", "100", "00000", "2", "8"]
 BID = ["1", "200", "1C700", "250", "122"]
 
 ####################################
-# RZ/V2L EVK boards configurations
+# RZ/V2L EVK board configurations
 ####################################
 
 [rzv2l-evk]
@@ -68,7 +68,7 @@ FIP = ["1", "100", "00000", "2", "8"]
 BID = ["1", "200", "1C700", "250", "122"]
 
 ####################################
-# RZ/V2H EVK boards configurations
+# RZ/V2H EVK board configurations
 ####################################
 
 [rzv2h-evk]

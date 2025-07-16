@@ -11,6 +11,8 @@
 ## Build binmake tool:
 
 ```bash
+git clone https://github.com/Renesas-SST/rz-utils -b main
+cd rz-utils/tools/binmake
 mkdir build
 cd build
 ```
@@ -43,7 +45,7 @@ $ cmake ..
 -- Detecting C compile features - done
 -- Configuring done
 -- Generating done
--- Build files have been written to: /home/son/thanhnguyen/rz-utility/tools/binmake/build
+-- Build files have been written to: /home/renesas/rz-utils/tools/binmake/build
 ```
 
 ## Run the `make` command to compile the binmake tool.
@@ -52,7 +54,7 @@ $ cmake ..
 $ make
 -- Configuring done (0.2s)
 -- Generating done (0.1s)
--- Build files have been written to: C:/Users/thanh.nguyen-duy/Documents/Repository/Github-POCDEMO/Vudang/rz-utility/tools/binmake/build
+-- Build files have been written to: C:/Users/renesas/rz-utils/tools/binmake/build
 [ 33%] Building C object CMakeFiles/binmake.dir/binmake.c.obj
 [ 66%] Building C object CMakeFiles/binmake.dir/cjson/cJSON.c.obj
 [100%] Linking C executable binmake.exe

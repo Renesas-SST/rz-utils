@@ -5,8 +5,15 @@ The **universal flash script** supports flashing RZ images across multiple board
 This script offers cross-platform support (for both Windows and Linux operating systems) and handles three key flashing operations for embedded devices:
 
 - Flashing the bootloader
-- Flashing the uload-bootloader
-- Flashing the Root Filesystem (rootfs) to an SD card
+- Flashing the uload-bootloader (only support QSPI flashing)
+- Flashing the Root Filesystem (rootfs) to an SD card / eMMC
+
+Supported boards:
+
+- [RZG2L-SBC](https://www.renesas.com/en/design-resources/boards-kits/rz-g2l-sbc?srsltid=AfmBOopW7k6H7kvdtnxYYs72c6Pm_8u667-UDBi8v9-WXPHjQvzWlhLN)
+- [RZG2L-EVK](https://www.renesas.com/en/design-resources/boards-kits/rz-g2l-evkit?srsltid=AfmBOoqqLvuA9ZrzAhhRLi9JR1JVUcoc9MUICwtZ78ZER-hchmQ3ps5I)
+- [RZV2L-EVK](https://www.renesas.com/en/design-resources/boards-kits/rz-v2l-evkit?srsltid=AfmBOooz3AGWNCJNed1qk6NS0qeZBngU79XQ4h2KUkmMam82y615JPjr)
+- [RZV2H-EVK](https://www.renesas.com/en/design-resources/boards-kits/rz-v2h-evk?srsltid=AfmBOooL-eoj5j3zum-HIL5v0JE9SROaKosWHYCOHfvySpJ4g39N9R_V)
 
 ## Prerequisites:
 
@@ -21,15 +28,9 @@ pip install pyserial
 pip install dataclasses (if using python <3.7)
 ```
 
-- wic image: Prepare your own rootfs wic image under `target\images` folder
-```bash
-cp </path/to/your/package>/core-image-minimal.wic /path/to/universal-scripts/target/images/
-```
----
-
 ## JSON Configuration for a New Board
 
-The `flash_images.json` file contains predefined image mappings for supported devices. Images must be located in the folder `universal-scripts/target/images`.
+The `flash_images.json` file contains predefined image mappings for supported devices.
 
 `flash_images.json` supports several default boards. You can add a custom board to the configuration file by providing the following information:
 
@@ -50,7 +51,7 @@ Example of a sample board configuration in JSON:
     "fip": "fip-rzg2l-sbc.srec",
     "flash_writer": "Flash_Writer_SCIF_rzg2l-sbc.mot",
     "ipl_flash_method": "qspi",
-    "rootfs": "core-image-qt-rzg2l-sbc.wic",
+    "rootfs": "core-image-weston.wic",
     "rootfs_flash_method": "udp"
 }
 ```
@@ -98,11 +99,3 @@ py universal_flash.py
 ```bash
 python3 universal_flash.py
 ```
-
----
-
-## Notes
-
-1. **Before flashing, ensure the board is powered off and the SD card is attached.**
-
-2. **When selecting to write the rootfs or write the IPL using UloadFlash, make sure the boot switches are set to normal boot mode. When selecting to write the IPL using BootloaderFlash, set the switches to enter SCIF download mode.**
