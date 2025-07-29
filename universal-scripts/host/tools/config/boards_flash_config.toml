@@ -82,7 +82,7 @@ load_address = "0x48000000"
 [rzv2h-evk.qspi]
 BL2 = ["8101E00", "00000"]
 FIP = ["00000", "60000"]
-BID = ["00000", "120000"]
+BID = ["00810", "120000"]
 
 # Bootloader flash eMMC
 [rzv2h-evk.emmc]
