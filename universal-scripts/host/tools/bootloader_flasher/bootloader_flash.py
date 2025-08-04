@@ -64,11 +64,11 @@ class BootloaderFlashUtil:
 									type=str,
 									help="Path to Flash Writer image (defaults to: <path/to/your/package>/target/images/Flash_Writer_SCIF_rzg2l-sbc.mot).")
 		self.__parser.add_argument('--image_bl2',
-									default=f'{self.__imagesDir}/bl2_bp-rzg2l-sbc.srec',
+									default=f'{self.__imagesDir}/bl2_bp_rzg2l-sbc.srec',
 									dest='bl2Image',
 									action='store',
 									type=str,
-									help='Path to bl2 image (defaults to: <path/to/your/package>/target/images/bl2_bp-rzg2l-sbc.srec).')
+									help='Path to bl2 image (defaults to: <path/to/your/package>/target/images/bl2_bp_rzg2l-sbc.srec).')
 		self.__parser.add_argument('--image_fip',
 									default=f'{self.__imagesDir}/fip-rzg2l-sbc.srec',
 									dest='fipImage',
@@ -82,7 +82,7 @@ class BootloaderFlashUtil:
 									type=str,
 									help='Path to board identification image (defaults to: <path/to/your/package>/target/images/rzg2l-sbc-platform-settings.bin).')
 
-		if args is not None:
+		if args:
 			self.__args = self.__parser.parse_args(args)
 		else:
 			self.__args = self.__parser.parse_args()

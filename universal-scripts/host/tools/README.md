@@ -46,7 +46,7 @@ Example of a sample board configuration in JSON:
 
 ```json
 "rzg2l-sbc": {
-    "bl2": "bl2_bp-rzg2l-sbc.srec",
+    "bl2": "bl2_bp_rzg2l-sbc.srec",
     "board_identification": "rzg2l-sbc-platform-settings.bin",
     "fip": "fip-rzg2l-sbc.srec",
     "flash_writer": "Flash_Writer_SCIF_rzg2l-sbc.mot",

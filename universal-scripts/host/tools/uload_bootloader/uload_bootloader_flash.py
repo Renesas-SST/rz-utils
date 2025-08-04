@@ -47,7 +47,7 @@ class UloadFlashUtil:
 									type=int,
 									help='Baud rate for serial port (defaults to: 115200).')
 
-		if args is not None:
+		if args:
 			self.__args = self.__parser.parse_args(args)
 		else:
 			self.__args = self.__parser.parse_args()
