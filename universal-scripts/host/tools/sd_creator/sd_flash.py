@@ -86,7 +86,7 @@ class SdFlashUtil:
 									type=str,
 									help='Path to rootfs (defaults to: <path/to/your/package>/target/images/core-image-qt-rzg2l-sbc.wic).')
 
-		if args is not None:
+		if args:
 			self.__args = self.__parser.parse_args(args)
 		else:
 			self.__args = self.__parser.parse_args()

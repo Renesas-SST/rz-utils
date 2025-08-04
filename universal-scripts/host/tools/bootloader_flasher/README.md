@@ -35,7 +35,7 @@ Place all bootloader images (e.g., for RZG2L-SBC board) in the /path/to/universa
 ```bash
 mkdir -p /path/to/universal-scripts/target/images/
 cp /path/to/your/bootloader/file/Flash_Writer_SCIF_rzg2l-sbc.mot /path/to/universal-scripts/target/images/
-cp /path/to/your/bootloader/file/bl2_bp-rzg2l-sbc.srec /path/to/universal-scripts/target/images/
+cp /path/to/your/bootloader/file/bl2_bp_rzg2l-sbc.srec /path/to/universal-scripts/target/images/
 cp /path/to/your/bootloader/file/fip-rzg2l-sbc.srec /path/to/universal-scripts/target/images/
 cp /path/to/your/bootloader/file/rzg2l-sbc-platform-settings.bin /path/to/universal-scripts/target/images/
 ```
@@ -67,7 +67,7 @@ When no arguments are provided, the script will use the following default info:
 - Serial port: most recently connected port (E.g: COM8 in Windows or /dev/ttyUSB0 in Linux)
 - Serial port baud: 115200
 - Flash Writer Image: /path/to/universal-scripts/target/images/Flash_Writer_SCIF_rzg2l-sbc.mot
-- BL2 Image: /path/to/universal-scripts/target/images/bl2_bp-rzg2l-sbc.srec
+- BL2 Image: /path/to/universal-scripts/target/images/bl2_bp_rzg2l-sbc.srec
 - FIP Image: /path/to/universal-scripts/target/images/fip-rzg2l-sbc.srec
 - Board identification Image: /path/to/universal-scripts/target/images/rzg2l-sbc-platform-settings.bin
 
@@ -91,13 +91,13 @@ Example Custom Command
 - Windows:
 
 ```
-py bootloader_flash.py --board_name rzg2l-evk --flash_method emmc --serial_port COM11 --serial_port_baud 9600 --image_writer D:\custom_images\Flash_Writer_SCIF_rzg2l-sbc.mot --image_bl2 D:\custom_images\bl2_bp-rzg2l-sbc.srec --image_fip D:\custom_images\fip-rzg2l-sbc.srec --image_bid D:\custom_images\rzg2l-evk-platform-settings.bin
+py bootloader_flash.py --board_name rzg2l-evk --flash_method emmc --serial_port COM11 --serial_port_baud 9600 --image_writer D:\custom_images\Flash_Writer_SCIF_rzg2l-sbc.mot --image_bl2 D:\custom_images\bl2_bp_rzg2l-sbc.srec --image_fip D:\custom_images\fip-rzg2l-sbc.srec --image_bid D:\custom_images\rzg2l-evk-platform-settings.bin
 ```
 
 - Linux:
 
 ```
-python3 bootloader_flash.py --board_name rzg2l-evk --flash_method emmc --serial_port /dev/ttyUSB0 --serial_port_baud 9600 --image_writer /home/renesas/custom_images/Flash_Writer_SCIF_rzg2l-sbc.mot --image_bl2 /home/renesas/custom_images/bl2_bp-rzg2l-sbc.srec --image_fip /home/renesas/custom_images/fip-rzg2l-sbc.srec --image_bid /home/renesas/custom_images/rzg2l-evk-platform-settings.bin
+python3 bootloader_flash.py --board_name rzg2l-evk --flash_method emmc --serial_port /dev/ttyUSB0 --serial_port_baud 9600 --image_writer /home/renesas/custom_images/Flash_Writer_SCIF_rzg2l-sbc.mot --image_bl2 /home/renesas/custom_images/bl2_bp_rzg2l-sbc.srec --image_fip /home/renesas/custom_images/fip-rzg2l-sbc.srec --image_bid /home/renesas/custom_images/rzg2l-evk-platform-settings.bin
 ```
 
 **3. Power on the board. It will start to flash bootloader images**
