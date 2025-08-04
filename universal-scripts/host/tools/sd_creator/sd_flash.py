@@ -204,7 +204,7 @@ class SdFlashUtil:
 			print("Returned value is not the expectation. Exiting.")
 			exit()
 
-		print(f'{buf.decode()}')
+		print(f'{buf.decode(errors="ignore")}')
 
 # Util function to die with error
 def die(msg='', code=1):
