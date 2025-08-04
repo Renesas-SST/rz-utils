@@ -138,7 +138,7 @@ class BootloaderFlashUtil:
 
 			time.sleep(0.1)
 
-		print(f'{buffer.decode()}')
+		print(f'{buffer.decode(errors="ignore")}')
 
 	# Function to write bootloader
 	def writeBootloader(self):
@@ -350,7 +350,7 @@ class BootloaderFlashUtil:
 			print(f"Returned value {cond} is not the expectation. Exiting.")
 			exit()
 
-		print(f'{buf.decode()}')
+		print(f'{buf.decode(errors="ignore")}')
 
 # Util function to die with error
 def die(msg='', code=1):
