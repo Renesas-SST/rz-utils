@@ -84,13 +84,13 @@ binmake
 If you're using RZ/G2L-SBC, run:
 
 ```bash
-./binmake --input=../platform_info.json --board=RZG2L-SBC --output=RZG2L-SBC.bin
+./binmake --input=../platform_info.json --board=rzg2l-sbc --output=rzg2l-sbc.bin
 ```
 
 If you're using RZ/G2L-EVK, run:
 
 ```bash
-./binmake --input=../platform_info.json --board=RZG2L-EVK --output=RZG2L-EVK.bin
+./binmake --input=../platform_info.json --board=rzg2l-evk --output=rzg2l-evk.bin
 ```
 
 - Output:

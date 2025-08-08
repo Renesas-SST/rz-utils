@@ -14,7 +14,7 @@ typedef enum
     FIELD_U16,
     FIELD_U32,
     FIELD_STRING,
-    FIELD_U8_ARRAY
+    FIELD_UINT_ARRAY
 } FieldType;
 
 typedef struct
@@ -41,12 +41,12 @@ FieldDesc fields[] = {
     {"u_boot_dtb_id"    , FIELD_U8         },
     {"kernel_id"        , FIELD_U8         },
     {"kernel_dtb_id"    , FIELD_U8         },
-    {"bl2_desc"         , FIELD_U8_ARRAY  },
-    {"bl2_dtb_desc"     , FIELD_U8_ARRAY  },
-    {"u_boot_desc"      , FIELD_U8_ARRAY  },
-    {"u_boot_dtb_desc"  , FIELD_U8_ARRAY  },
-    {"kernel_desc"      , FIELD_U8_ARRAY  },
-    {"kernel_dtb_desc"  , FIELD_U8_ARRAY  },
+    {"bl2_desc"         , FIELD_UINT_ARRAY  },
+    {"bl2_dtb_desc"     , FIELD_UINT_ARRAY  },
+    {"u_boot_desc"      , FIELD_UINT_ARRAY  },
+    {"u_boot_dtb_desc"  , FIELD_UINT_ARRAY  },
+    {"kernel_desc"      , FIELD_UINT_ARRAY  },
+    {"kernel_dtb_desc"  , FIELD_UINT_ARRAY  },
 };
 
 typedef struct __attribute__((packed)) platform_desc {
@@ -95,34 +95,42 @@ void write_string(char *dest, const char *src, size_t max_len)
     }
 }
 
-int parse_uint8_array(cJSON *array, uint8_t *out_array, size_t max_len)
+int parse_uint_array(cJSON *array, uint8_t *out_array, size_t max_len)
 {
     if (!cJSON_IsArray(array))
         return -1;
 
     size_t count = cJSON_GetArraySize(array);
-    if (count > max_len / sizeof(uint32_t))
-        return -1;
-
+    size_t out_offset = 0;
     memset(out_array, 0, max_len);
 
-    for (size_t i = 0; i < count; ++i)
+    for (size_t array_idx = 0; array_idx < count; ++array_idx)
     {
-        cJSON *item = cJSON_GetArrayItem(array, i);
+        cJSON *item = cJSON_GetArrayItem(array, array_idx);
         if (!cJSON_IsString(item) || item->valuestring == NULL)
             return -1;
 
-        uint32_t val = (uint32_t)strtoul(item->valuestring, NULL, 16);
-        size_t offset = i * sizeof(uint32_t);
-        if (offset + sizeof(uint32_t) > max_len)
+        uint32_t val = (uint32_t)strtoul(item->valuestring, NULL, 0);
+
+        // Determine minimum size needed
+        size_t size = 1;
+        if (val > 0xFF)        size = 2;
+        if (val > 0xFFFF)      size = 3;
+        if (val > 0xFFFFFF)    size = 4;
+
+        if (out_offset + size > max_len)
             return -1;
 
-        memcpy(out_array + offset, &val, sizeof(uint32_t));
+        for (size_t byte_idx = 0; byte_idx < size; ++byte_idx)
+        {
+            out_array[out_offset + byte_idx] = (val >> (8 * (size - 1 - byte_idx))) & 0xFF;
+        }
+
+        out_offset += size;
     }
 
     return 0;
 }
-
 
 static int handle_parse_error(const char *field_name, cJSON *root, char *json_data) {
     fprintf(stderr, "Failed to parse array field '%s'\n", field_name);
@@ -308,29 +316,29 @@ int main(int argc, char *argv[]) {
             else if (strcmp(field->key, "mfg_name") == 0)
                 write_string(desc.mfg_name, item->valuestring, MAX_SIZE_LEN);
             break;
-        case FIELD_U8_ARRAY:
+        case FIELD_UINT_ARRAY:
             if (strcmp(field->key, "bl2_desc") == 0) {
-                if (parse_uint8_array(item, desc.bl2_desc, MAX_SIZE_LEN) != 0)
+                if (parse_uint_array(item, desc.bl2_desc, MAX_SIZE_LEN) != 0)
                     return handle_parse_error(field->key, root_all, json_data);
             }
             else if (strcmp(field->key, "bl2_dtb_desc") == 0) {
-                if (parse_uint8_array(item, desc.bl2_dtb_desc, MAX_SIZE_LEN) != 0)
+                if (parse_uint_array(item, desc.bl2_dtb_desc, MAX_SIZE_LEN) != 0)
                     return handle_parse_error(field->key, root_all, json_data);
             }
             else if (strcmp(field->key, "u_boot_desc") == 0) {
-                if (parse_uint8_array(item, desc.u_boot_desc, MAX_SIZE_LEN) != 0)
+                if (parse_uint_array(item, desc.u_boot_desc, MAX_SIZE_LEN) != 0)
                     return handle_parse_error(field->key, root_all, json_data);
             }
             else if (strcmp(field->key, "u_boot_dtb_desc") == 0) {
-                if (parse_uint8_array(item, desc.u_boot_dtb_desc, MAX_SIZE_LEN) != 0)
+                if (parse_uint_array(item, desc.u_boot_dtb_desc, MAX_SIZE_LEN) != 0)
                     return handle_parse_error(field->key, root_all, json_data);
             }
             else if (strcmp(field->key, "kernel_desc") == 0) {
-                if (parse_uint8_array(item, desc.kernel_desc, MAX_SIZE_LEN) != 0)
+                if (parse_uint_array(item, desc.kernel_desc, MAX_SIZE_LEN) != 0)
                     return handle_parse_error(field->key, root_all, json_data);
             }
             else if (strcmp(field->key, "kernel_dtb_desc") == 0) {
-                if (parse_uint8_array(item, desc.kernel_dtb_desc, MAX_SIZE_LEN) != 0)
+                if (parse_uint_array(item, desc.kernel_dtb_desc, MAX_SIZE_LEN) != 0)
                     return handle_parse_error(field->key, root_all, json_data);
             }
             break;        
