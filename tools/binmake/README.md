@@ -79,21 +79,30 @@ binmake
 └── README.md
 ```
 
-## Convert platform_info.json into binary file for specific board:
+## Basic Usage
 
-If you're using RZ/G2L-SBC, run:
+If you’re using **RZ/G2L-SBC**, run:
 
 ```bash
 ./binmake --input=../platform_info.json --board=rzg2l-sbc --output=rzg2l-sbc.bin
 ```
 
-If you're using RZ/G2L-EVK, run:
+If you’re using **RZ/G2L-EVK**, run:
 
 ```bash
 ./binmake --input=../platform_info.json --board=rzg2l-evk --output=rzg2l-evk.bin
 ```
 
-- Output:
+Same applies for other support boards.
+
+## Output Example
+
+Example after running binmake:
+
+```
+Binary created: rzg2l-sbc.bin (board: rzg2l-sbc)
+Output binary size: 0x810 bytes
+```
 
 ```bash
 binmake
@@ -111,4 +120,42 @@ binmake
 ├── CMakeLists.txt
 ├── platform_info.json
 └── README.md
+```
+
+## Building All Revisions
+
+If a board definition contains a "revisions" section in the JSON, you can build all revisions at once using:
+
+```
+./binmake --input=../platform_info.json --board=rzv2h-evk --output=rzv2h-evk-platform-settings.bin --all-revisions
+```
+
+This will produce:
+
+```
+Built base -> rzv2h-evk-platform-settings.bin
+Built revision 1.20 -> rzv2h-evk-ver1.20-platform-settings.bin
+Built revision 1.21 -> rzv2h-evk-ver1.21-platform-settings.bin
+```
+
+## Building a Specific Revision
+
+To generate a specific revision binary:
+
+```
+./binmake --input=../platform_info.json --board=rzv2h-evk --output=rzv2h-evk-ver1.21.bin --revision=1.21
+```
+
+## Command line Options
+
+```
+Usage: binmake --input=FILE --board=NAME --output=FILE [--revision=X.Y] [--all-revisions]
+
+Options:
+  --input=FILE         Path to input JSON file containing board information
+  --board=NAME         Board name to select from the JSON file
+  --output=FILE        Path to output binary file
+  --revision=X.Y       (Optional) overlay from board.revisions[X.Y]
+  --all-revisions      Build binaries for all revisions if available
+  -h, --help           Show help message
 ```
