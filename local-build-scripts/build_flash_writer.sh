@@ -3,58 +3,84 @@
 source ./config.ini
 source ./common.sh
 
-# Check Flash-Writer location
-if [ -z "${FLASH_WRITER_DIR}" ]; then
-        echo "There is no U-Boot source at ${FLASH_WRITER_DIR} or it does not set properly at config.ini file."
-        echo "Please recheck your setup"
-        exit 1
+# if PLATFORM is already exported from main_build.sh, keep it
+if [ -n "${PLATFORM:-}" ] && [ -n "${PLAT:-}" ]; then
+	PLATFORM="$PLAT"
 fi
 
-# Setup the build
-flash_writer_setup() {
-        case ${PLATFORM} in
-                'RZG2L-SBC')
-                        BOARD="RZG2L_SBC"
-                        ;;
-                'RZG2L-EVK')
-                        BOARD="RZG2L_SMARC_PMIC"
-                        ;;
-                'RZV2L-EVK')
-                        BOARD="RZV2L_SMARC_PMIC"
-                        ;;
-                'RZV2H-EVK')
-                        BOARD=""
-                        echo "The platform does not support yet. Cancelling the build" || exit 1
-                        ;;
-                *)
-                        echo "The platform does not support. Please recheck your setup" || exit 1
-                        ;;
-        esac
+# Check Flash-Writer location
+if [ -z "${FLASH_WRITER_DIR}" ]; then
+	echo "There is no Flash-writer source at ${FLASH_WRITER_DIR} or it does not set properly at config.ini file."
+	echo "Please recheck your setup"
+	exit 1
+fi
+
+# Map PLATFORM -> "PLAT BOARD"
+declare -A FW_P2B=(
+	["RZG2L-SBC"]="RZG2L_SBC"
+	["RZG2L-EVK"]="RZG2L_SMARC_PMIC"
+	["RZV2L-EVK"]="RZV2L_SMARC_PMIC"
+	["RZV2H-EVK"]="RZV2H_DEV"
+)
+
+sanitize_env() {
+	unset CFLAGS LDFLAGS;
+}
+
+resolve_fw_board() {
+	local platform="$1"
+	if [[ -z "${FW_P2B[$platform]+set}" ]]; then
+		echo "The platform '$platform' is not supported by Flash Writer yet."
+		exit 1
+	fi
+	BOARD="${FW_P2B[$platform]}"
+	export BOARD
+}
+
+mk_image_one() {
+	local platform="$1"
+	sanitize_env
+	resolve_fw_board "${platform}"
+	make -C "${FLASH_WRITER_DIR}" -j"${JOBS}" BOARD="${BOARD}"
+}
+
+mk_clean_one() {
+	local platform="$1"
+	# Clean doesn’t need BOARD in upstream trees, but keep it consistent
+	if [[ -n "${FW_P2B[$platform]+set}" ]]; then
+		BOARD="${FW_P2B[$platform]}"
+		sanitize_env
+		make -C "${FLASH_WRITER_DIR}" clean || true
+	fi
 }
 
 mk_image() {
-        flash_writer_setup
-        make BOARD="${BOARD}" -j16
+	if [ "${PLATFORM}" = "RZ-CMN" ]; then
+		for pf in "${COMMON_PLATFORMS[@]}"; do
+			echo "==> Building Flash Writer for ${pf}"
+			mk_image_one "${pf}"
+		done
+		else
+		mk_image_one "${PLATFORM}"
+	fi
 }
 
 mk_clean() {
-        make clean
+	if [ "${PLATFORM}" = "RZ-CMN" ]; then
+		for pf in "${COMMON_PLATFORMS[@]}"; do mk_clean_one "${pf}"; done
+	else
+		mk_clean_one "${PLATFORM}"
+	fi
 }
 
-# Main Flash-Writer build
-echo "Starting the Flash-Writer build ${1} at ${FLASH_WRITER_DIR}"
-cd "${FLASH_WRITER_DIR}" || exit 1
+# ---- Main ----
+cmd="${1:-all}"
+echo "Starting the Flash-Writer build '${cmd}' (PLATFORM=${PLATFORM}) at ${FLASH_WRITER_DIR}"
 
-case ${1} in
-        'clean')
-                mk_clean
-                ;;
-        'all')
-                mk_image
-                ;;
-        *)
-                show_help
-                ;;
+case "${cmd}" in
+	clean) mk_clean ;;
+	all)   mk_image ;;
+	*)     show_help ;;
 esac
 
 exit 0
