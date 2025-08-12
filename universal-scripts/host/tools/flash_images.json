@@ -28,7 +28,7 @@
     },
     "rzv2h-evk": {
         "bl2": "bl2_bp_spi_rzv2h-evk.srec",
-        "board_identification": "rzv2h-evk-platform-settings.bin",
+        "board_identification": "rzv2h-evk-ver1.00-platform-settings.bin",
         "fip": "fip_rzv2h-evk.srec",
         "flash_writer": "Flash_Writer_SCIF_RZV2H_DEV_INTERNAL_MEMORY.mot",
         "ipl_flash_method": "qspi",
