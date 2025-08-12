@@ -1,84 +1,117 @@
 #!/bin/bash
+set -euo pipefail
 
 source ./config.ini
 source ./common.sh
 
-# Check ATF location
-if [ -z "${ATF_DIR}" ]; then
-        echo "There is no U-Boot source at ${ATF_DIR} or it does not set properly at config.ini file."
-        echo "Please recheck your setup"
-        exit 1
+# if PLATFORM is already exported from main_build.sh, keep it
+if [ -n "${PLATFORM:-}" ] && [ -n "${PLAT:-}" ]; then
+	PLATFORM="$PLAT"
 fi
 
-# Setup the build
-atf_setup() {
-        unset CFLAGS LDFLAGS
+# Check ATF location
+if [ -z "${ATF_DIR}" ]; then
+	echo "There is no TF-A source at ${ATF_DIR} or it does not set properly at config.ini file."
+	echo "Please recheck your setup"
+	exit 1
+fi
 
-        case ${PLATFORM} in
-                'RZG2L-SBC')
-                        PLAT="g2l"
-                        BOARD="sbc_1"
-                        ;;
-                'RZG2L-EVK')
-                        PLAT="g2l"
-                        BOARD="smarc_pmic_2"
-                        ;;
-                'RZV2L-EVK')
-                        PLAT="v2l"
-                        BOARD="smarc_pmic_2"
-                        ;;
-                'RZV2H-EVK')
-                        PLAT="v2h"
-                        BOARD="evk_1"
-                        ;;
-                *)
-                        echo "The platform does not support. Please recheck your setup" || exit 1
-                        ;;
-        esac        
+# ---- Config ----
+JOBS="${JOBS:-$(nproc)}"
+
+# Map PLATFORM -> "PLAT BOARD"
+declare -A P2B=(
+	["RZG2L-SBC"]="g2l sbc_1"
+	["RZG2L-EVK"]="g2l smarc_pmic_2"
+	["RZV2L-EVK"]="v2l smarc_rzv2l"
+	["RZV2H-EVK"]="v2h v2h_evk_1"
+)
+
+# Resolve PLAT/BOARD for a single PLATFORM
+resolve_board() {
+	local platform="$1"
+	if [[ -z "${P2B[$platform]+set}" ]]; then
+		echo "The platform '$platform' is not supported. Please recheck your setup."
+		exit 1
+	fi
+	read -r PLAT BOARD <<<"${P2B[$platform]}"
+	export PLAT BOARD
+}
+
+mk_image_one() {
+	local platform="$1"
+	local image="$2"
+	resolve_board "${platform}"
+
+	if [ "${ATF_MODE:-RELEASE}" = "DEBUG" ]; then
+		make -C "${ATF_DIR}" -j"${JOBS}" PLAT="${PLAT}" BOARD="${BOARD}" DEBUG=1 "${image}"
+	else
+		make -C "${ATF_DIR}" -j"${JOBS}" PLAT="${PLAT}" BOARD="${BOARD}" "${image}"
+	fi
+}
+
+mk_clean_one() {
+	local platform="$1"
+	resolve_board "${platform}"
+	if [ -d "${out}" ]; then
+		make -C "${ATF_DIR}" clean || true
+	fi
+}
+
+mk_distclean_one() {
+	local platform="$1"
+	resolve_board "${platform}"
+	local out="${BUILD_ROOT}/${PLAT}-${BOARD}"
+	if [ -d "${out}" ]; then
+		make -C "${ATF_DIR}" distclean || true
+		rm -rf "${out}"
+	fi
 }
 
 mk_image() {
-        local image=${1}
-        atf_setup
-
-        if [ "${ATF_MODE}" = "DEBUG" ]; then
-            make -j16 PLAT="${PLAT}" BOARD="${BOARD}" DEBUG=1 "${image}"
-        else
-            make -j16 PLAT="${PLAT}" BOARD="${BOARD}" "${image}"
-        fi
+	local image="$1"
+	if [ "${PLATFORM}" = "RZ-CMN" ]; then
+		for pf in "${COMMON_PLATFORMS[@]}"; do
+			echo "==> Building ${image} for ${pf}"
+			mk_image_one "${pf}" "${image}"
+		done
+	else
+		mk_image_one "${PLATFORM}" "${image}"
+	fi
 }
 
 mk_clean() {
-        make clean
+	if [ "${PLATFORM}" = "RZ-CMN" ]; then
+		for pf in "${COMMON_PLATFORMS[@]}"; do mk_clean_one "${pf}"; done
+	else
+		mk_clean_one "${PLATFORM}"
+	fi
 }
 
 mk_distclean() {
-        make distclean
+	if [ "${PLATFORM}" = "RZ-CMN" ]; then
+		for pf in "${COMMON_PLATFORMS[@]}"; do mk_distclean_one "${pf}"; done
+	else
+		mk_distclean_one "${PLATFORM}"
+	fi
 }
 
-# Main ATF build
-echo "Starting the ATF build ${1} at ${ATF_DIR}"
-cd "${ATF_DIR}" || exit 1
+sanitize_env() {
+	unset CFLAGS LDFLAGS;
+}
 
-case ${1} in
-        'clean')
-                mk_clean
-                ;;
-        'distclean')
-                mk_distclean
-                ;;
-        'bl2')
-                mk_image "${1}"
-                ;;
-        'bl31')
-                mk_image "${1}"
-                ;;
-        'all')
-                mk_image "${1}"
-                ;;
-        *)
-                show_help
-                ;;
+# ---- Main ----
+cmd="${1:-all}"
+echo "Starting the ATF build '${cmd}' (PLATFORM=${PLATFORM}) in ${ATF_DIR}"
+sanitize_env
+
+case "${cmd}" in
+  clean)      mk_clean ;;
+  distclean)  mk_distclean ;;
+  bl2|bl31|all)
+			  mk_image "${cmd}" ;;
+  *)
+			  show_help ;;
 esac
 
 exit 0

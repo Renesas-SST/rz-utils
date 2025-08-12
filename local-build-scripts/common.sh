@@ -60,6 +60,10 @@ For example:
         $ ./main-build.sh kernel clean
 
 Note: Before executing the build, please make sure that you have updated the configuration file: config.ini at the top of the build scripts folder.
+
+Platform Override:
+    By default, PLATFORM is read from config.ini, but you can override it at runtime, for example:
+        $ PLAT=RZ-CMN ./main-build.sh kernel full-image
 "
 # Help message
 show_help() {
