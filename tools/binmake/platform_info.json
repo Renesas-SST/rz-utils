@@ -86,10 +86,10 @@
         "kernel_dtb_desc": []
     },
 
-    "rzv2h-evk": {
+    "rzv2h-evk-ver1": {
         "model_id": 48,
-        "revision_minor": 1,
-        "revision_major": 20,
+        "revision_minor": 0,
+        "revision_major": 1,
         "model_string": "rzv2h-evk",
         "mfg_name": "Renesas",
 
@@ -115,10 +115,10 @@
         "kernel_dtb_desc": []
     },
 
-    "rzv2h-evk-ver1": {
+    "rzv2h-evk-ver2": {
         "model_id": 48,
-        "revision_minor": 1,
-        "revision_major": 21,
+        "revision_minor": 0,
+        "revision_major": 2,
         "model_string": "rzv2h-evk",
         "mfg_name": "Renesas",
 
