@@ -98,7 +98,7 @@ mk_distclean() {
 
 mk_defconfig() {
 	kernel_setup
-	make defconfig
+	make ${DEFCONFIG}
 }
 
 mk_menuconfig() {
@@ -108,7 +108,7 @@ mk_menuconfig() {
 
 mk_modules() {
 	kernel_setup
-	make defconfig
+	make ${DEFCONFIG}
 	mk_full_image
 	echo '|============================================|'
 	echo '|               Build modules                |'
