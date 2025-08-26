@@ -53,19 +53,13 @@ mk_image_one() {
 mk_clean_one() {
 	local platform="$1"
 	resolve_board "${platform}"
-	if [ -d "${out}" ]; then
-		make -C "${ATF_DIR}" clean || true
-	fi
+	make -C "${ATF_DIR}" clean || true
 }
 
 mk_distclean_one() {
 	local platform="$1"
 	resolve_board "${platform}"
-	local out="${BUILD_ROOT}/${PLAT}-${BOARD}"
-	if [ -d "${out}" ]; then
-		make -C "${ATF_DIR}" distclean || true
-		rm -rf "${out}"
-	fi
+	make -C "${ATF_DIR}" distclean || true
 }
 
 mk_image() {
