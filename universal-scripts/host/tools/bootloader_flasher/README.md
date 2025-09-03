@@ -63,7 +63,7 @@ python3 bootloader_flash.py
 When no arguments are provided, the script will use the following default info:
 
 - Board name: rzg2l-sbc
-- Flash method: qspi
+- Flash method: xspi
 - Serial port: most recently connected port (E.g: COM8 in Windows or /dev/ttyUSB0 in Linux)
 - Serial port baud: 115200
 - Flash Writer Image: /path/to/universal-scripts/target/images/Flash_Writer_SCIF_rzg2l-sbc.mot
@@ -78,7 +78,7 @@ Ensure that these files are present in the current directory before executing th
 If you want to specify different file paths or change the serial port settings or images file, you can pass the arguments as shown below:
 
 - **--board_name**: Board name to flash bootloader.
-- **--flash_method**: Flash method to use (qspi or emmc).
+- **--flash_method**: Flash method to use (xspi or emmc).
 - **--serial_port**: Serial port to use for communication with the board.
 - **--serial_port_baud**: Baud rate for the serial port.
 - **--image_writer**: Path to the Flash Writer image.
@@ -102,4 +102,4 @@ python3 bootloader_flash.py --board_name rzg2l-evk --flash_method emmc --serial_
 
 **3. Power on the board. It will start to flash bootloader images**
 
-Wait for the script running automatically, and no input or operation is required during this period. After completing the process, you can set RZ board to boot from QSPI/eMMC as your needs.
+Wait for the script running automatically, and no input or operation is required during this period. After completing the process, you can set RZ board to boot from xSPI/eMMC as your needs.

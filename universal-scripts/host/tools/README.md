@@ -5,7 +5,7 @@ The **universal flash script** supports flashing RZ images across multiple board
 This script offers cross-platform support (for both Windows and Linux operating systems) and handles three key flashing operations for embedded devices:
 
 - Flashing the bootloader
-- Flashing the uload-bootloader (only support QSPI flashing)
+- Flashing the uload-bootloader (only support QSPI/xSPI flashing)
 - Flashing the Root Filesystem (rootfs) to an SD card / eMMC
 
 Supported boards:
@@ -38,7 +38,7 @@ The `flash_images.json` file contains predefined image mappings for supported de
 - **board_identification**: Board identification image name
 - **fip**: FIP image name
 - **flash_writer**: Flash Writer image name
-- **ipl_flash_method**: Method used by the IPL bootloader for flashing (`qspi` or `emmc`)
+- **ipl_flash_method**: Method used by the IPL bootloader for flashing (`xspi` or `emmc`)
 - **rootfs**: Root filesystem image name (`*.wic`)
 - **rootfs_flash_method**: Method to flash the SD card (`udp` or `otg`)
 
@@ -50,7 +50,7 @@ Example of a sample board configuration in JSON:
     "board_identification": "rzg2l-sbc-platform-settings.bin",
     "fip": "fip-rzg2l-sbc.srec",
     "flash_writer": "Flash_Writer_SCIF_rzg2l-sbc.mot",
-    "ipl_flash_method": "qspi",
+    "ipl_flash_method": "xspi",
     "rootfs": "core-image-weston.wic",
     "rootfs_flash_method": "udp"
 }

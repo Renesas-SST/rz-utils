@@ -36,12 +36,12 @@ class BootloaderFlashUtil:
 									type=str,
 									help='Board name to flash bootloader (defaults to: rzg2l-sbc).')
 		self.__parser.add_argument('--flash_method',
-									default='qspi',
+									default='xspi',
 									dest='flashMethod',
 									action='store',
 									type=str,
-									choices=['emmc', 'qspi'],
-									help='Flash method to use (defaults to: qspi).')
+									choices=['emmc', 'xspi', 'esd'],
+									help='Flash method to use (defaults to: xspi).')
 
 		# Serial port arguments
 		self.__parser.add_argument('--serial_port',
@@ -181,9 +181,9 @@ class BootloaderFlashUtil:
 		# emmc flash
 		if (self.__args.flashMethod == "emmc"):
 			self.__handle_emmc_flash(self.__flashAddress["emmc"])
-		# qspi flash
-		elif (self.__args.flashMethod == "qspi"):
-			self.__handle_qspi_flash(self.__flashAddress["qspi"])
+		# xspi flasj
+		elif (self.__args.flashMethod == "xspi"):
+			self.__handle_xspi_flash(self.__flashAddress["xspi"])
 
 		print("Closed serial port.")
 		self.__serialPort.close()
@@ -274,7 +274,7 @@ class BootloaderFlashUtil:
 		self.__writeFileToSerial(self.__args.bidImage)
 		self.__serialRead('>')
 
-	def __handle_qspi_flash(self, flashAddress):
+	def __handle_xspi_flash(self, flashAddress):
 		if not (self.__args.boardName == "rzv2h-evk"):
 			self.__writeSerialCmd('XCS')
 			self.__wait_for_prompt(60)

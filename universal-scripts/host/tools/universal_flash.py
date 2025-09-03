@@ -83,17 +83,21 @@ class UniversalFlashUtil:
         print("\n=== Building firmware artifacts ===")
 
         # Map paths from images dir + flash_images.json
+        board_soc = self.boards_data[self.selected_board_name]["soc"]
         bl2_path = os.path.join(self.__imagesDir, "atf", "bl2-rz-cmn.bin")
         bl31_path = os.path.join(self.__imagesDir, "atf", "bl31-rz-cmn.bin")
-        dtb_path = os.path.join(self.__imagesDir, "u-boot", "dtbs", self.boards_data[self.selected_board_name]["uboot_dtb"])
+        atf_fdts_path = os.path.join(self.__imagesDir, "atf", "fdts", self.boards_data[self.selected_board_name]["atf_fdts"])
+        uboot_dtbs_path = os.path.join(self.__imagesDir, "u-boot", "dtbs", self.boards_data[self.selected_board_name]["uboot_dtb"])
         uboot_nodtb_path = os.path.join(self.__imagesDir, "u-boot", "u-boot-nodtb-rz-cmn.bin")
 
         # Build the args namespace exactly as firmware-compile expects
         args = parse_args([
             "--board", self.selected_board_name,
+            "--soc", board_soc,
             "--method", self.boards_data[self.selected_board_name]["ipl_flash_method"],
             "--bl2", bl2_path,
-            "--dtb", dtb_path,
+            "--atf-fdts", atf_fdts_path,
+            "--uboot-dtbs", uboot_dtbs_path,
             "--bl31", bl31_path,
             "--u-boot-nodtb", uboot_nodtb_path,
             #"--out-dir", os.path.join(self.__imagesDir, "build_artifacts") # it depends, it can be deployed to target/images or custom dir.
@@ -161,8 +165,6 @@ class UniversalFlashUtil:
         self.input_menu()
         # Get information for the selected board
         self.info_get()
-        # Prepare firmware binaries before flashing
-        self.prepare_binaries()
 
         # Write Rootfs
         if(self.yes_no_prompt("Do you want to write the rootfs?")):
@@ -189,6 +191,9 @@ class UniversalFlashUtil:
             # Check if IPL method is selected
             if (self.select_ipl_method() == "BootloaderFlash"):
                 print("Writing IPL by bootloader flash...\n")
+                # Prepare firmware binaries before flashing
+                self.prepare_binaries()
+
                 bootloader_args = [
                     '--board_name', f"{self.selected_board_name}",
                     '--flash_method', f"{self.selected_info.ipl_flash_method}",
