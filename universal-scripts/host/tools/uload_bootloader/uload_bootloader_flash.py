@@ -79,7 +79,7 @@ class UloadFlashUtil:
 	# Function to write bootloader
 	def writeUloadBootloader(self):
 		self.__getUloadFlashInfo()
-		qspiFlashAddress = self.__uloadFlashInfo["flash_address"]
+		xspiFlashAddress = self.__uloadFlashInfo["flash_address"]
 		loadAddress = self.__uloadFlashInfo["load_address"]
 
 		start_time = time.time()
@@ -100,7 +100,7 @@ class UloadFlashUtil:
 		self.__serialRead('=>')
 
 		# sf erase
-		print('erase QSPI: please wait a minute...')
+		print('erase QSPI/xSPI: please wait a minute...')
 		start_time_erase = time.time()
 		self.__writeSerialCmd('sf erase 0 100000')
 		self.__serialRead('OK')
@@ -124,7 +124,7 @@ class UloadFlashUtil:
 		self.__serialRead('=>')
 
 		# writing bl2...
-		self.__writeSerialCmd(f'sf write {loadAddress} {qspiFlashAddress[0]} $filesize')
+		self.__writeSerialCmd(f'sf write {loadAddress} {xspiFlashAddress[0]} $filesize')
 		self.__serialRead('OK')
 
 		# true
@@ -140,7 +140,7 @@ class UloadFlashUtil:
 		self.__serialRead('=>')
 
 		# writing fip...
-		self.__writeSerialCmd(f'sf write {loadAddress} {qspiFlashAddress[1]} $filesize')
+		self.__writeSerialCmd(f'sf write {loadAddress} {xspiFlashAddress[1]} $filesize')
 		self.__serialRead('OK')
 
 		# true
@@ -156,7 +156,7 @@ class UloadFlashUtil:
 		self.__serialRead('=>')
 
 		# writing bl2...
-		self.__writeSerialCmd(f'sf write {loadAddress} {qspiFlashAddress[2]} $filesize')
+		self.__writeSerialCmd(f'sf write {loadAddress} {xspiFlashAddress[2]} $filesize')
 		self.__serialRead('OK')
 
 		# true

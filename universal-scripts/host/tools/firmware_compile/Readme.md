@@ -16,16 +16,14 @@ The script supports multiple boards and flash methods without hardcoding address
 - Creates **Boot Parameter + BL2** binary and `.srec` with correct VMA offset.
 - Builds **U-Boot (nodtb) + DTB** combined binary.
 - Generates **FIP** binary and `.srec` with correct VMA offset.
-- Reads **board-specific DTB filenames** from `flash_images.json`.
-- Reads **flash memory address mapping** from `boards_flash_config.toml`.
 - Supports both **Windows** and **Linux** build hosts.
 
 ---
 
 ## Prerequisites
 Make sure you have the following installed or available in `tools/bin/<os>` or `host/tools/bin/<os>`:
-- `bootparameter`
-- `fiptool`
+- `bpgen` (unified boot parameter generator)
+- `fiptool`(TF-A utility)
 - `objcopy` (part of GNU binutils)
 - Python 3.8+ (Python 3.11+ recommended for built-in TOML parsing)
 
@@ -35,12 +33,11 @@ Firmware binaries and DTBs must be available in (already included in release pac
 target/images/
 ```
 
-
 ## Usage
 Basic example:
 
 ```bash
-python3 firmware-compile.py --board rzg2l-sbc --method qspi
+python3 firmware-compile.py --soc g2l --board rzg2l-sbc --method xspi
 ```
 
 This will:
@@ -54,13 +51,15 @@ This will:
 | Option                | Default          | Description |
 |-----------------------|------------------|-------------|
 | `--board`             | `rzg2l-sbc`      | Target board name (must exist in `boards_flash_config.toml` and `flash_images.json`). |
-| `--method`            | `qspi`           | Flash method (`qspi` or `emmc`). |
+| `--soc`               | `g2l`            | Target SoC family (g2l, v2l, v2h). |
+| `--method`            | `xspi`           | Flash method (`xspi` or `emmc`). |
 | `--bl2`               | auto from images | Path to BL2 binary (override default). |
-| `--dtb`               | auto from JSON   | Path to ATF DTB (override default). |
+| `--atf-fdts`          | auto from JSON   | ATF FDT(s) to append to BL2. |
+| `--uboot-dtbs`        | auto from JSON   | U-Boot DTB(s) to append to U-Boot nodtb. |
 | `--bl31`              | auto from images | Path to BL31 binary (override default). |
 | `--u-boot-nodtb`      | auto from images | Path to U-Boot (nodtb) binary (override default). |
 | `--out-dir`           | `out`            | Output directory for generated files. |
-| `--bootparameter`     | auto search      | Path to `bootparameter` tool (override search path). |
+| `--bootparameter`     | auto search      | Path to `bpgen` tool (override search path). |
 | `--fiptool`           | auto search      | Path to `fiptool` tool (override search path). |
 | `--objcopy`           | auto search      | Path to `objcopy` tool (override search path). |
 | `--fip-align`         | `16`             | FIP alignment. |
@@ -83,7 +82,7 @@ This will:
 | `fip_<board>.bin`              | Firmware Image Package binary                       |
 | `fip_<board>.srec`             | FIP in Motorola S-record format (with correct VMA)  |
 
-## Notes
+## Notesl
 
 - VMAs are pulled from boards_flash_config.toml per board and flash method.
 - ATF DTB and U-Boot DTB names are taken from flash_images.json.

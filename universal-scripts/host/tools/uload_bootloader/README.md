@@ -1,6 +1,6 @@
 # RZ uload-bootloader - Bootloader Programming/Flashing on U-Boot console
 
-This directory contains tools used for flashing uload bootloader (only support QSPI flashing) on the RZ devices
+This directory contains tools used for flashing uload bootloader (only support QSPI/xSPI flashing) on the RZ devices
 
 ## Outline of the folder
 
@@ -86,6 +86,6 @@ py uload_bootloader_flash.py --serial_port COM11 --serial_port_baud 9600
 python3 uload_bootloader_flash.py --serial_port /dev/ttyUSB0 --serial_port_baud 9600
 ```
 
-**4. Power on the board. It will start to load bootloader images from uboot into QSPI flash**
+**4. Power on the board. It will start to load bootloader images from uboot into QSPI/xSPI flash**
 
-Wait for the script running automatically, and no input or operation is required during this period. After completing the process, you can set RZ board to boot from QSPI as your needs.
+Wait for the script running automatically, and no input or operation is required during this period. After completing the process, you can set RZ board to boot from QSPI/xSPI as your needs.
