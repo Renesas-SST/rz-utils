@@ -1,8 +1,8 @@
 {
     "rzg2l-evk": {
         "model_id": 16,
-        "revision_minor": 1,
-        "revision_major": 20,
+        "revision_minor": 0,
+        "revision_major": 1,
         "model_string": "rzg2l-evk",
         "mfg_name": "Renesas",
 
@@ -30,8 +30,8 @@
 
     "rzg2l-sbc": {
         "model_id": 17,
-        "revision_minor": 1,
-        "revision_major": 20,
+        "revision_minor": 0,
+        "revision_major": 1,
         "model_string": "rzg2l-sbc",
         "mfg_name": "Renesas",
 
@@ -59,8 +59,8 @@
 
     "rzv2l-evk": {
         "model_id": 32,
-        "revision_minor": 1,
-        "revision_major": 20,
+        "revision_minor": 0,
+        "revision_major": 1,
         "model_string": "rzv2l-evk",
         "mfg_name": "Renesas",
 
