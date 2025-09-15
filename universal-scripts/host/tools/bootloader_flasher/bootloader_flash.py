@@ -6,6 +6,7 @@ import argparse
 import time
 import os
 from serial.tools.list_ports import comports
+from serial.serialutil import SerialException
 import sys
 if sys.version_info >= (3, 11):  # pragma: Python version >=3.11
     import tomllib
@@ -163,6 +164,9 @@ class BootloaderFlashUtil:
 
 		if (self.__args.boardName == "rzv2h-evk"):
 			self.__serialRead('Load Program to SRAM')
+		elif (self.__args.boardName == "rzv2h-rdk"):
+			print("No need to check input for RZV2H-RDK.")
+			pass
 		else:
 			self.__serialRead('please send !')
 
@@ -275,7 +279,7 @@ class BootloaderFlashUtil:
 		self.__serialRead('>')
 
 	def __handle_xspi_flash(self, flashAddress):
-		if not (self.__args.boardName == "rzv2h-evk"):
+		if not (self.__args.boardName == "rzv2h-evk") and not (self.__args.boardName == "rzv2h-rdk"):
 			self.__writeSerialCmd('XCS')
 			self.__wait_for_prompt(60)
 
@@ -343,14 +347,42 @@ class BootloaderFlashUtil:
 			f.close()
 
 	# Function to wait and print contents of serial buffer
-	def __serialRead(self, cond='\n'):
-		buf = self.__serialPort.read_until(cond.encode())
+	def __serialRead(self, cond='\n', timeout=10, retry_interval=1):
+		"""
+		Read data from the serial port until the condition string 'cond' is encountered or the timeout is reached.
 
-		if not buf:
-			print(f"Returned value {cond} is not the expectation. Exiting.")
-			exit()
+		Parameters:
+		- cond: The condition string to stop reading (default is '\n').
+		- timeout: Maximum wait time (in seconds) before raising an error if no data is received.
+		- retry_interval: Time interval between retry attempts (in seconds).
 
-		print(f'{buf.decode(errors="ignore")}')
+		Returns:
+		- Data read from the serial port.
+		"""
+		start_time = time.time()
+		while time.time() - start_time < timeout:
+			try:
+				# Attempt to read data from the serial port
+				buf = self.__serialPort.read_until(cond.encode())
+
+				if not buf:
+					print(f"Returned value {cond} is not the expectation. Exiting.")
+					exit()
+
+				print(f'{buf.decode(errors="ignore")}')
+				return buf
+
+			except SerialException as e:
+				# If the error is due to a disconnection
+				if "device reports readiness to read but returned no data" in str(e):
+					print(f"Device disconnected. Retrying in {retry_interval} seconds...")
+					time.sleep(retry_interval)  # Wait before retrying
+				else:
+					# If it's another error, re-raise the exception
+					raise SerialException(f"read failed: {e}")
+
+		# If the timeout is reached without a connection, raise an error
+		raise SerialException("Device disconnected and did not reconnect within 10 seconds")
 
 # Util function to die with error
 def die(msg='', code=1):
