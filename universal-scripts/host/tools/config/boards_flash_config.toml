@@ -111,7 +111,7 @@ flash_address = ["00000", "60000", "120000"]
 load_address = "0x48000000"
 
 # Bootloader flash SPI
-[rzv2h-rdk.qspi]
+[rzv2h-rdk.xspi]
 BL2 = ["8101E00", "00000"]
 FIP = ["00000", "60000"]
 BID = ["00810", "120000"]
