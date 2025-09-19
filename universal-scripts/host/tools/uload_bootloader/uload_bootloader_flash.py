@@ -8,187 +8,183 @@ import os
 from serial.tools.list_ports import comports
 import sys
 if sys.version_info >= (3, 11):  # pragma: Python version >=3.11
-    import tomllib
+	import tomllib
 else:  # pragma: Python version <3.11
-    import tomli as tomllib
+	import tomli as tomllib
+
+DEFAULT_MEDIA_DIR = "uload-bootloader"   # on FAT32 partition
 
 class UloadFlashUtil:
 	def __init__(self, args=None):
 		self.__scriptDir = os.path.dirname(os.path.abspath(__file__))
-
 		self.__setupArgumentParser(args)
 		self.__setupSerialPort()
 
-	# Setup CLI parser
 	def __setupArgumentParser(self, args):
-		# Create parser
-		self.__parser = argparse.ArgumentParser(description='Util to flash bootloader from U-Boot console on RZ Board.\n', epilog='Example:\n\t./uload_bootloader_flash.py')
-
-		# Add arguments
+		p = argparse.ArgumentParser(
+			description='Util to flash bootloader from U-Boot console on RZ Board.\n'
+						'NOTE: Images must be on SD card partition 1 (FAT32), i.e. mmc 0:1.\n',
+			epilog='Example:\n  ./uload_bootloader_flash.py --board_name rzg2l-sbc'
+		)
 		# Board name
-		self.__parser.add_argument('--board_name',
-									default='rzg2l-sbc',
-									dest='boardName',
-									action='store',
-									type=str,
-									help='Board name to flash bootloader (defaults to: rzg2l-sbc).')
+		p.add_argument('--board_name', default='rzg2l-sbc', dest='boardName', type=str,
+					help='Board name to flash bootloader (default: rzg2l-sbc).')
 
-		# Serial port arguments
-		self.__parser.add_argument('--serial_port',
-									default=None,
-									dest='serialPort',
-									action='store',
-									help='Serial port used to talk to board (defaults to: most recently connected port).')
+		# Serial
+		p.add_argument('--serial_port', default=None, dest='serialPort',
+					help='Serial port to talk to the board (default: newest connected port).')
+		p.add_argument('--serial_port_baud', default=115200, dest='baudRate', type=int,
+					help='Baud rate (default: 115200).')
 
-		self.__parser.add_argument('--serial_port_baud',
-									default=115200,
-									dest='baudRate',
-									action='store',
-									type=int,
-									help='Baud rate for serial port (defaults to: 115200).')
+		# media paths on the FAT32 partition
+		# If only a filename is provided, it will search DEFAULT_MEDIA_DIR/ (uload-bootloader)
+		p.add_argument('--bl2_path', dest='bl2Path', default=None, type=str,
+					help='Path/filename of BL2 image on SD (e.g., "uload-bootloader/bl2_bp_rzg2l-sbc.bin" '
+							'or just "bl2_bp_rzg2l-sbc.bin").')
+		p.add_argument('--fip_path', dest='fipPath', default=None, type=str,
+					help='Path/filename of FIP image on SD.')
+		p.add_argument('--image_bid', dest='bidPath', default=None, type=str,
+					help='Path/filename of board-ID/platform-settings binary on SD.')
 
-		if args:
-			self.__args = self.__parser.parse_args(args)
-		else:
-			self.__args = self.__parser.parse_args()
+		self.__parser = p
+		self.__args = p.parse_args(args) if args else p.parse_args()
 
-	# Setup Serial Port
 	def __setupSerialPort(self):
 		try:
-			if (self.__args.serialPort is None):
+			if self.__args.serialPort is None:
 				ports = [port.device for port in comports()]
+				if not ports:
+					die('No serial ports found.')
 				print(f"Available serial ports: {ports}")
 				print(f"Using serial port: {ports[0]}")
-				self.__serialPort = serial.Serial(port= ports[0], baudrate = self.__args.baudRate, timeout=15)
+				self.__serialPort = serial.Serial(port=ports[0], baudrate=self.__args.baudRate, timeout=15)
 			else:
-				self.__serialPort = serial.Serial(port=self.__args.serialPort, baudrate = self.__args.baudRate, timeout=15)
-		except:
-			die(msg='Unable to open serial port.')
+				self.__serialPort = serial.Serial(port=self.__args.serialPort, baudrate=self.__args.baudRate, timeout=15)
+		except Exception as e:
+			die(msg=f'Unable to open serial port ({e}).')
 
 	def __getUloadFlashInfo(self):
-		configFile = os.path.join(self.__scriptDir, ".." , "config", 'boards_flash_config.toml')
+		configFile = os.path.join(self.__scriptDir, "..", "config", 'boards_flash_config.toml')
 		with open(configFile, "rb") as f:
 			flash_info = tomllib.load(f)
 
-		self.__uloadFlashInfo = flash_info[self.__args.boardName]
+		try:
+			self.__uloadFlashInfo = flash_info[self.__args.boardName]
+		except KeyError:
+			die(msg=f'Board name "{self.__args.boardName}" is not supported.')
 
-		if self.__uloadFlashInfo is None:
-			print(f"Board name {self.__args.boardName} is not supported.")
-			exit()
+	@staticmethod
+	def __resolve_media_path(name_or_path: str) -> str:
+		"""Return a path usable by U-Boot fatload.
+		If only a filename is given (no '/'), prepend DEFAULT_MEDIA_DIR/."""
+		if name_or_path is None:
+			return None
+		if '/' in name_or_path or '\\' in name_or_path:
+			return name_or_path.replace('\\', '/')
+		return f"{DEFAULT_MEDIA_DIR}/{name_or_path}"
 
-	# Function to write bootloader
 	def writeUloadBootloader(self):
 		self.__getUloadFlashInfo()
 		xspiFlashAddress = self.__uloadFlashInfo["flash_address"]
 		loadAddress = self.__uloadFlashInfo["load_address"]
 
+		# Derive defaults from boardName if user didn’t pass custom paths
+		default_bl2_name = f"bl2_bp_{self.__args.boardName}.bin"
+		default_fip_name = f"fip_{self.__args.boardName}.bin"
+		default_bid_name = f"{self.__args.boardName}-platform-settings.bin"
+
+		bl2_path = self.__resolve_media_path(self.__args.bl2Path or default_bl2_name)
+		fip_path = self.__resolve_media_path(self.__args.fipPath or default_fip_name)
+		bid_path = self.__resolve_media_path(self.__args.bidPath or default_bid_name)
+
+		print("Image sources on SD (mmc 0:1):")
+		print(f"  BL2 : {bl2_path}")
+		print(f"  FIP : {fip_path}")
+		print(f"  BID : {bid_path}")
+
 		start_time = time.time()
 
 		# Wait for device to be ready to receive image.
-		print('Please power on board. Make sure you changed switches to normal boot mode.')
+		print("Please power on the board and ensure the DIP switches are set to normal boot mode. Press RESET if available (on EVK boards); otherwise, power-cycle (e.g., toggle the POWER switch or unplug/replug power).")
 		self.__serialRead('Hit any key to stop autoboot:')
 		self.__writeSerialCmd('')
 
 		self.__serialRead('=>')
 
-		# sf probe
+		# Probe xSPI flash
 		self.__writeSerialCmd('sf probe')
 		self.__serialRead('MiB')
 
-		# true
 		self.__writeSerialCmd('true')
 		self.__serialRead('=>')
 
-		# sf erase
-		print('erase QSPI/xSPI: please wait a minute...')
+		# Erase a safe region (adjust size as needed)
+		print('Erasing xSPI: please wait...')
 		start_time_erase = time.time()
 		self.__writeSerialCmd('sf erase 0 100000')
 		self.__serialRead('OK')
-		end_time_erase = time.time()
-		erase_time = end_time_erase - start_time_erase
-		print(f"erase time: {erase_time:.6f} seconds")
+		print(f"Erase time: {time.time() - start_time_erase:.3f} s")
 
-		# true
 		self.__writeSerialCmd('true')
 		self.__serialRead('=>')
 
-		# loading bl2...
-		if (self.__args.boardName == "rzv2h-evk"):
-			self.__writeSerialCmd(f'fatload mmc 0:1 {loadAddress} uload-bootloader/bl2_bp_spi_{self.__args.boardName}.bin')
-		else:
-			self.__writeSerialCmd(f'fatload mmc 0:1 {loadAddress} uload-bootloader/bl2_bp_{self.__args.boardName}.bin')
+		# Loading BL2
+		# ${mmcdev} and ${mmcpart} are U-Boot environment variables.
+		self.__writeSerialCmd(f'fatload mmc ${{mmcdev}}:${{mmcpart}} {loadAddress} {bl2_path}')
 		self.__serialRead('MiB/s)')
 
-		# true
 		self.__writeSerialCmd('true')
 		self.__serialRead('=>')
 
-		# writing bl2...
 		self.__writeSerialCmd(f'sf write {loadAddress} {xspiFlashAddress[0]} $filesize')
 		self.__serialRead('OK')
 
-		# true
 		self.__writeSerialCmd('true')
 		self.__serialRead('=>')
 
-		# loading fip...
-		self.__writeSerialCmd(f'fatload mmc 0:1 {loadAddress} uload-bootloader/fip_{self.__args.boardName}.bin')
+		# Loading FIP
+		# ${mmcdev} and ${mmcpart} are U-Boot environment variables.
+		self.__writeSerialCmd(f'fatload mmc ${{mmcdev}}:${{mmcpart}} {loadAddress} {fip_path}')
 		self.__serialRead('MiB/s)')
 
-		# true
 		self.__writeSerialCmd('true')
 		self.__serialRead('=>')
 
-		# writing fip...
 		self.__writeSerialCmd(f'sf write {loadAddress} {xspiFlashAddress[1]} $filesize')
 		self.__serialRead('OK')
 
-		# true
 		self.__writeSerialCmd('true')
 		self.__serialRead('=>')
 
-		# loading board indentification...
-		self.__writeSerialCmd(f'fatload mmc 0:1 {loadAddress} uload-bootloader/{self.__args.boardName}-platform-settings.bin')
+		# Loading Board Identification
+		# ${mmcdev} and ${mmcpart} are U-Boot environment variables.
+		self.__writeSerialCmd(f'fatload mmc ${{mmcdev}}:${{mmcpart}} {loadAddress} {bid_path}')
 		self.__serialRead('MiB/s)')
 
-		# true
 		self.__writeSerialCmd('true')
 		self.__serialRead('=>')
 
-		# writing bl2...
 		self.__writeSerialCmd(f'sf write {loadAddress} {xspiFlashAddress[2]} $filesize')
 		self.__serialRead('OK')
 
-		# true
 		self.__writeSerialCmd('true')
 		self.__serialRead('=>')
 
-		# Closed serial port.
 		print("Closed serial port.")
 		self.__serialPort.close()
 
-		end_time = time.time()
-		elapsed_time = end_time - start_time
-		print(f"Elapsed time: {elapsed_time:.6f} seconds")
+		print(f"Elapsed time: {time.time() - start_time:.3f} s")
 
 	def __writeSerialCmd(self, cmd):
 		self.__serialPort.write(f'{cmd}\r'.encode())
 
-	# Function to write file over serial
-	def __writeFileToSerial(self, file):
-		with open(file, 'rb') as f:
-			self.__serialPort.write(f.read())
-			f.close()
-
 	# Function to wait and print contents of serial buffer
 	def __serialRead(self, cond='\n'):
 		buf = self.__serialPort.read_until(cond.encode())
-
 		if not buf:
 			print("Returned value is not the expectation. Exiting.")
 			exit()
-
-		print(f'{buf.decode(errors="ignore")}')
+		print(buf.decode(errors="ignore"))
 
 # Util function to die with error
 def die(msg='', code=1):
@@ -196,9 +192,8 @@ def die(msg='', code=1):
 	exit(code)
 
 def main():
-	uloadFlashUtil = UloadFlashUtil()
-
-	uloadFlashUtil.writeUloadBootloader()
+	tool = UloadFlashUtil()
+	tool.writeUloadBootloader()
 
 if __name__ == '__main__':
 	main()

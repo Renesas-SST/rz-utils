@@ -135,7 +135,7 @@ class SdFlashUtil:
 			exit()
 
 		# Wait for device to be ready to receive image.
-		print('Please power on board. Make sure you changed switches to normal boot mode.')
+		print("Please power on the board and ensure the DIP switches are set to normal boot mode. Press RESET if available (on EVK boards); otherwise, power-cycle (e.g., toggle the POWER switch or unplug/replug power).")
 		self.__serialRead('Hit any key to stop autoboot:')
 		self.__writeSerialCmd('')
 		self.__serialRead('=>')
