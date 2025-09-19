@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse, platform, shutil, subprocess, sys
 from dataclasses import dataclass
 from pathlib import Path
+import json
 
 # ---------- repo roots / dirs ----------
 HERE = Path(__file__).resolve().parent
@@ -42,6 +43,10 @@ IMG_DIR = REPO / "target" / "images"
 
 CFG_DIRS = [
 	REPO / "host" / "tools" / "config" / "boards_flash_config.toml",
+]
+
+JSON_DIR = [
+	REPO / "host" / "tools" / "flash_images.json",
 ]
 
 # ---------- utils ----------
@@ -119,14 +124,21 @@ class FirmwareBuilder:
 	def __init__(self, args: argparse.Namespace):
 		"""Initialize build context: resolve inputs, outputs, tools, and VMAs."""
 		self.board = args.board
-		self.soc = args.soc.lower()
 		self.method = args.method
+		self.json_file = first_that_exists(*JSON_DIR)
+		self.boards_data = {}
+
+		# Load json file data
+		self.load_json()
 
 		# Defaults derived from target/images + board
+		self.soc = (args.soc or self.boards_data[self.board]["soc"] or "g2l").lower()
+		self.method = (args.method or self.boards_data[self.board]["ipl_flash_method"] or "xspi").lower()
+
 		default_bl2   = IMG_DIR / "atf"    / "bl2-rz-cmn.bin"
 		default_bl31  = IMG_DIR / "atf"    / "bl31-rz-cmn.bin"
-		default_atf_fdts   = [IMG_DIR / "atf"    / "fdts" / f"{self.board}.dtb"]
-		default_uboot_dtbs = [IMG_DIR / "u-boot" / "dtbs" / f"{self.board}.dtb"]
+		default_atf_fdts   = [IMG_DIR / "atf"    / "fdts" / f"{self.boards_data[self.board]['atf_fdts']}"]
+		default_uboot_dtbs = [IMG_DIR / "u-boot" / "dtbs" / f"{self.boards_data[self.board]['uboot_dtb']}"]
 		default_ubnd  = IMG_DIR / "u-boot" / "u-boot-nodtb-rz-cmn.bin"
 
 		# Resolve inputs (CLI overrides > defaults)
@@ -161,16 +173,19 @@ class FirmwareBuilder:
 		bl2_arr = method_cfg.get("BL2")
 		if args.bl2_bp_vma:
 			self.bl2_bp_vma = hex_norm(args.bl2_bp_vma)
-		else:
+		elif (self.method == "xspi"):
 			self.bl2_bp_vma = hex_norm(bl2_arr[0])
+		elif (self.method == "emmc"):
+			self.bl2_bp_vma = hex_norm(bl2_arr[2])
 
-		print("bl2 out vma", self.bl2_bp_vma)
 		# FIP VMA get from toml unless overridden
 		fip_arr = method_cfg.get("FIP", [])
 		if args.fip_vma:
 			self.fip_vma = hex_norm(args.fip_vma)
-		else:
+		elif (self.method == "xspi"):
 			self.fip_vma = hex_norm(fip_arr[0])
+		elif (self.method == "emmc"):
+			self.fip_vma = hex_norm(fip_arr[2])
 
 		# FIP align & tb-kind
 		self.fip_align  = int(args.fip_align) if args.fip_align else 16
@@ -197,6 +212,15 @@ class FirmwareBuilder:
 			print(f"[warn] ATF FDTs not found at: {self.atf_fdts}")
 		if not any(p.exists() for p in self.uboot_dtbs):
 			print(f"[warn] U-Boot DTBs not found at: {self.uboot_dtbs}")
+
+	def load_json(self):
+		try:
+			with open(self.json_file, 'r') as f:
+				self.boards_data = json.load(f)
+		except FileNotFoundError:
+			print(f"File '{self.json_file}' not found.")
+		except json.JSONDecodeError as e:
+			print(f"Error decoding JSON: {e}")
 
 	def make_bl2_padded(self):
 		"""Pads the BL2 binary with null bytes to reach the DTB limit."""
@@ -303,9 +327,9 @@ def parse_args(argv=None) -> argparse.Namespace:
 	"""Parse command-line arguments for firmware_build.py."""
 	p = argparse.ArgumentParser(description="Build BL2/BL2_BP/U-Boot/FIP artifacts (VMAs from TOML per board/method).")
 	p.add_argument("--board", default="rzg2l-sbc")
-	p.add_argument("--soc", choices=["g2l", "v2l", "v2h"], default="g2l",
+	p.add_argument("--soc", choices=["g2l", "v2l", "v2h"],
 				help="Target SoC family")
-	p.add_argument("--method", choices=["xspi","emmc"], default="xspi",
+	p.add_argument("--method", choices=["xspi","emmc"],
 				help="Which flash method's VMA rules to use (default: xspi)")
 
 	p.add_argument("--bl2")

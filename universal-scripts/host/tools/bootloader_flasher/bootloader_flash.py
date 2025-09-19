@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # Imports
 import serial
@@ -70,11 +70,11 @@ class BootloaderFlashUtil:
 									type=str,
 									help='Path to bl2 image (defaults to: <path/to/your/package>/target/images/bl2_bp_rzg2l-sbc.srec).')
 		self.__parser.add_argument('--image_fip',
-									default=f'{self.__imagesDir}/fip-rzg2l-sbc.srec',
+									default=f'{self.__imagesDir}/fip_rzg2l-sbc.srec',
 									dest='fipImage',
 									action='store',
 									type=str,
-									help='Path to FIP image (defaults to: <path/to/your/package>/target/images/fip-rzg2l-sbc.srec).')
+									help='Path to FIP image (defaults to: <path/to/your/package>/target/images/fip_rzg2l-sbc.srec).')
 		self.__parser.add_argument('--image_bid',
 									default=f'{self.__imagesDir}/rzg2l-sbc-platform-settings.bin',
 									dest='bidImage',
@@ -159,7 +159,8 @@ class BootloaderFlashUtil:
 			exit()
 
 		# Wait for device to be ready to receive image.
-		print("Please power on board. Make sure you changed switches to SCIF download mode.")
+		print("Please power on the board and ensure the DIP switches are set to SCIF Download Mode. Press RESET if available (on EVK boards); otherwise, power-cycle (e.g., toggle the POWER switch or unplug/replug power).")
+
 		if (self.__args.boardName == "rzv2h-evk"):
 			self.__serialRead('Load Program to SRAM')
 		else:
@@ -259,16 +260,15 @@ class BootloaderFlashUtil:
 		# Write board identification
 		BIDFlashAddress = flashAddress["BID"]
 		self.__writeSerialCmd('EM_WB')
-		self.__writeSerialCmd('EM_W')
 		self.__serialRead('Select area')
 		self.__writeSerialCmd(BIDFlashAddress[0])
 
 		self.__serialRead('Please Input Start Address in sector')
 		self.__writeSerialCmd(BIDFlashAddress[1])
 
-		self.__serialRead('Please Input Program Start Address')
+		self.__serialRead('Please Input File size(byte)')
 		self.__writeSerialCmd(BIDFlashAddress[2])
-		self.__serialRead('please send ! (binary)')
+		self.__serialRead('please send binary file!')
 
 		print("Writing board identification...")
 		self.__writeFileToSerial(self.__args.bidImage)

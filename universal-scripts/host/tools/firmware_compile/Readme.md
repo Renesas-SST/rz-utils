@@ -41,10 +41,10 @@ python3 firmware-compile.py --soc g2l --board rzg2l-sbc --method xspi
 ```
 
 This will:
-1. Build bl2_<board>.bin (BL2 + board DTB)
-2. Build bl2_bp_<board>.bin and .srec
-3. Build u-boot_<board>.bin (U-Boot + board DTB)
-4. Build fip_<board>.bin and .srec
+1. Build bl2_&lt;board&gt;.bin (BL2 + board DTB)
+2. Build bl2_bp_&lt;board&gt;.bin and .srec
+3. Build u-boot_&lt;board&gt;.bin (U-Boot + board DTB)
+4. Build fip_&lt;board&gt;.bin and .srec
 
 ## CLI Options
 
@@ -82,7 +82,7 @@ This will:
 | `fip_<board>.bin`              | Firmware Image Package binary                       |
 | `fip_<board>.srec`             | FIP in Motorola S-record format (with correct VMA)  |
 
-## Notesl
+## Notes
 
 - VMAs are pulled from boards_flash_config.toml per board and flash method.
 - ATF DTB and U-Boot DTB names are taken from flash_images.json.

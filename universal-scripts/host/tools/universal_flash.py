@@ -50,7 +50,7 @@ class UniversalFlashUtil:
         # Board selection
         if not self.boards_data:
             print("No board data loaded.")
-            return
+            return False
 
         print("Available boards:")
         for idx, board in enumerate(self.boards_data.keys()):
@@ -60,12 +60,15 @@ class UniversalFlashUtil:
         selection = int(input("Select board by number: ")) - 1
         if selection < 0 or selection >= len(board_names):
             print("Invalid selection.")
-            return
+            return False
         self.selected_board_name = board_names[selection]
         print(f"Selected board: {self.selected_board_name}\n")
 
         # Serial port and baud rate selection
-        ports = [port.device for port in comports()]
+        ports = [p.device for p in comports()]
+        if not ports:
+            print("No serial ports detected. Please connect your board and try again.")
+            return False
         print("Available serial ports:")
         for i, port in enumerate(ports):
             print(f"{i}: {port}")
@@ -75,9 +78,11 @@ class UniversalFlashUtil:
             self.selected_port = ports[index]
         else:
             print("Invalid number. Try again.")
+            return False
 
         self.selected_baud_rate = int(input(f"Enter baud rate (Default {self.selected_baud_rate}): ") or 115200)
         print(f"Selected port [{self.selected_port}] with baud rate: {self.selected_baud_rate}\n")
+        return True
 
     def prepare_binaries(self):
         print("\n=== Building firmware artifacts ===")
@@ -86,8 +91,8 @@ class UniversalFlashUtil:
         board_soc = self.boards_data[self.selected_board_name]["soc"]
         bl2_path = os.path.join(self.__imagesDir, "atf", "bl2-rz-cmn.bin")
         bl31_path = os.path.join(self.__imagesDir, "atf", "bl31-rz-cmn.bin")
-        atf_fdts_path = os.path.join(self.__imagesDir, "atf", "fdts", self.boards_data[self.selected_board_name]["atf_fdts"])
-        uboot_dtbs_path = os.path.join(self.__imagesDir, "u-boot", "dtbs", self.boards_data[self.selected_board_name]["uboot_dtb"])
+        atf_fdts_path = os.path.join(self.__imagesDir, "atf", "fdts", self.boards_data[self.selected_board_name]['atf_fdts'])
+        uboot_dtbs_path = os.path.join(self.__imagesDir, "u-boot", "dtbs", self.boards_data[self.selected_board_name]['uboot_dtb'])
         uboot_nodtb_path = os.path.join(self.__imagesDir, "u-boot", "u-boot-nodtb-rz-cmn.bin")
 
         # Build the args namespace exactly as firmware-compile expects
@@ -162,7 +167,8 @@ class UniversalFlashUtil:
 
     def run(self):
         self.load_json()
-        self.input_menu()
+        if not self.input_menu():
+            return
         # Get information for the selected board
         self.info_get()
 

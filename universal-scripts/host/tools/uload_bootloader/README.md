@@ -1,6 +1,6 @@
 # RZ uload-bootloader - Bootloader Programming/Flashing on U-Boot console
 
-This directory contains tools used for flashing uload bootloader (only support QSPI/xSPI flashing) on the RZ devices
+This section describes the ULoad-bootloader flow for programming the bootloader from the U-Boot console. It supports xSPI flashing and is intended for cases where the device can boot to U-Boot and program flash using images stored on the removable media.
 
 ## Outline of the folder
 
@@ -9,6 +9,14 @@ uload-bootloader
 ├── uload_bootloader_flash.py
 └── README.md
 ```
+
+## Prerequisites
+
+The release does not include prebuilt ULoad images on the SD card. The ULoad flow requires BL2 and FIP artifacts that are rebuilt for the selected board with the correct DTB/FCONF and configuration.
+
+Run the `firmware_compile.py` in `firmware_compile` folder script to generate these artifacts, then copy them to partition 1 (FAT32) under `/uload-bootloader/` before running the ULoad flasher. This ensures the programmed bootloader matches the exact board and release configuration, minimizing risk of mismatch.
+
+To begin with compiling uLoad images, refer to `firmware_compile/Readme.md` for more details.
 
 ## Getting help
 
@@ -30,18 +38,21 @@ python3 uload_bootloader_flash.py -h
 
 Please follow below steps:
 
-**1. Prepare necessary images (optional)**
+**1. Prepare necessary images (required)**
 
-Place all bootloader images in the /boot/uload-bootloader folder on eMMC/SD Card.
+This step packages the artifacts built by `firmware-compile.py` and places them on the removable media so the ULoad-bootloader script (U-Boot console flow) can program xSPI.
 
-We have already prepared the .bin images in the /boot/uload-bootloader folder on partition 1 (FAT32). If you want to update the images, replace the files in this folder using the correct partition.
+From `target/images`, gather the per-board files:
+- `bl2`: bl2_bp_&lt;board-name&gt;.bin
+- `fip`: fip_&lt;board&gt;.bin
+- `Board identification`: &lt;board&gt;-&lt;version&gt;-platform-settings.bin
 
-The `/boot/uload-bootloader` folder should contain the following files (e.g., RZG2L-SBC board):
+Place all files on partition 1 (FAT32) of the SD card under this directory.
 
-- fip-rzg2l-sbc.bin
-- bl2_bp-rzg2l-sbc.bin
-
-**2. Connect debug serial port to Host PC, then change switches to enter SCIF download mode**
+```
+/uload-bootloader
+```
+**2. Connect debug serial port to Host PC, then change switches to enter normal boot mode**
 
 **3. Run the script**
 
@@ -64,28 +75,51 @@ python3 uload_bootloader_flash.py
 When no arguments are provided, the script will use the following default info:
 - Serial port: most recently connected port (E.g: COM8 in Windows or /dev/ttyUSB0 in Linux)
 - Serial port baudrate: 115200
+- `bl2`: bl2_bp_&lt;board-name&gt;.bin
+- `fip`: fip_&lt;board&gt;.bin
+- `Board identification`: &lt;board&gt;-&lt;version&gt;-platform-settings.bin
+
+**Note:** default `board-name` is `rzg2l-sbc`
 
 *Custom Usage*
 
-If you want to change the serial port settings, you can pass the arguments as shown below:
+To specify custom file paths or override the defaults, the following arguments can be passed:
 
 - **--serial_port**: Serial port to use for communication with the board.
 - **--serial_port_baud**: Baud rate for the serial port.
+- **--image_bl2**: Path or filename of the BL2 image
+- **--image_fip**: Path or filename of the FIP image
+- **--image_bid**: Path or filename of the board-identification file
 
 Example Custom Command
 
 - Windows:
 
-```
-py uload_bootloader_flash.py --serial_port COM11 --serial_port_baud 9600
+```powershell
+py uload_bootloader_flash.py \	
+  --serial_port /dev/ttyUSB0 \
+  --serial_port_baud 115200 \
+  --image_bl2 /mnt/sd/uload-bootloader/bl2_bp-rzg2l-sbc.bin \
+  --image_fip /mnt/sd/uload-bootloader/fip-rzg2l-sbc.bin \
+  --image_bid /mnt/sd/uload-bootloader/rzg2l-sbc-platform-settings.bin
 ```
 
 - Linux:
 
-```
-python3 uload_bootloader_flash.py --serial_port /dev/ttyUSB0 --serial_port_baud 9600
+```shell
+python3 uload_bootloader_flash.py \
+  --serial_port /dev/ttyUSB0 \
+  --serial_port_baud 115200 \
+  --image_bl2 /mnt/sd/uload-bootloader/bl2_bp-rzg2l-sbc.bin \
+  --image_fip /mnt/sd/uload-bootloader/fip-rzg2l-sbc.bin \
+  --image_bid /mnt/sd/uload-bootloader/rzg2l-sbc-platform-settings.bin
 ```
 
-**4. Power on the board. It will start to load bootloader images from uboot into QSPI/xSPI flash**
+**Notes:**
+- If only a filename is provided (no path), the script searches the default directory (e.g., /uload-bootloader on partition 1, FAT32).
+- If a path is provided, the script searches only partition 1 (FAT32), not the ext4 partition.
+- Ensure the filenames match the board that was built with firmware-compile.py.
 
-Wait for the script running automatically, and no input or operation is required during this period. After completing the process, you can set RZ board to boot from QSPI/xSPI as your needs.
+**4. Power on the board. It will start to load bootloader images from uboot into xSPI flash**
+
+Wait for the script running automatically, and no input or operation is required during this period. After completing the process, you can set RZ board to boot from xSPI as your needs.

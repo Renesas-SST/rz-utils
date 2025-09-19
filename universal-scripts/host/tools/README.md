@@ -5,7 +5,7 @@ The **universal flash script** supports flashing RZ images across multiple board
 This script offers cross-platform support (for both Windows and Linux operating systems) and handles three key flashing operations for embedded devices:
 
 - Flashing the bootloader
-- Flashing the uload-bootloader (only support QSPI/xSPI flashing)
+- Flashing the uload-bootloader (only support xSPI flashing)
 - Flashing the Root Filesystem (rootfs) to an SD card / eMMC
 
 Supported boards:
@@ -17,16 +17,136 @@ Supported boards:
 
 ## Prerequisites:
 
-- python
-  - For Windows install: please refer to [this page](https://www.python.org/downloads/) to download the setup file.
-  - For Linux install: `sudo apt install python3`
+Before running the scripts, ensure the following dependencies are installed.
 
-- python packages: Follows package is required to be using the flashing script. Please install if one of them is missing:
+### Python
+
+- **Windows**: Download and install Python from the [official website](https://www.python.org/downloads/). Make sure Python was installed with the "Add Python to environment variables" and "Install pip" options enabled.
+
+- **Linux**:  
+  ```sh
+  sudo apt install python3
+  ```
+
+#### Required Python packages
+
+The flashing script depends on the following Python packages. Install them if missing:
+
+- **pyserial**
+- **dataclasses** (only if using Python < 3.7)
+
+1. On Linux:
+
+If Python 3.12 is in use: set up a virtual environment first.
+
+```shell
+renesas@builder-pc:~/rz-cmn-srp-3.0/host/tools#  sudo apt install python3.12-venv
+renesas@builder-pc:~/rz-cmn-srp-3.0/host/tools#  python3 -m venv .venv
+renesas@builder-pc:~/rz-cmn-srp-3.0/host/tools#  source .venv/bin/activate
+```
+
+After the virtual environment is active, choose one of the two install methods:
+
+- Option 1 - Use `requirements.txt` (recommended)
+  ```sh
+  cd <path/to/your/package/host/tools>
+  pip3 install -r requirements.txt
+  ```
+
+- Option 2 - Install manually
+
+```sh
+# Ensure pip is available
+sudo apt install python3-pip
+
+# Install required packages
+pip3 install pyserial
+pip3 install dataclasses
+```
+
+2. On windows, there are two ways to install:
+
+- If `pip` is missing, repair your Python installation or download [get-pip.py](https://bootstrap.pypa.io/get-pip.py) and run:
+    ```powershell
+    py get-pip.py
+    ```
+- Install required packages:
+  1. Option 1 - Use `requirements.txt` (recommended)
+    ```powershell
+    cd <path/to/your/package/host/tools>
+    py -m pip install -r requirements.txt
+    ```
+  2. Option 2 - Install manually
+  - Using the Python launcher:
+
+  ```powershell
+  py -m pip install pyserial
+  py -m pip install tomli
+  py -m pip install dataclasses       # Only if Python < 3.7
+  ```
+ - Or using `pip` directly (if already in PATH):
+
+ ```powershell
+  pip install pyserial
+  pip install tomli
+  pip install dataclasses   # only if Python < 3.7
+ ```
+
+### Environment and Tool Dependencies
+
+Make sure you have the following installed or available in `tools/bin/<os>` or `host/tools/bin/<os>`:
+- `bpgen` - unified boot parameter generator (already included in the release package)
+- `fiptool` - TF-A utility (already included in the release package)
+- `objcopy` - part of GNU binutils (see installation steps above)
+
+Firmware binaries and DTBs must be available in (already included in the release package):
 
 ```
-pip install pyserial
-pip install dataclasses (if using python <3.7)
+target/images/
 ```
+
+#### Linux
+
+Install the GNU toolchain and OpenSSL development package:
+
+```
+sudo apt-get install build-essential libssl-dev
+```
+
+#### Windows
+
+For Windows builds, both **GNU binutils** and **OpenSSL** are required to generate pre-compiled binaries.
+
+1. GNU Binutils
+- Download and install [MinGW-w64](https://www.mingw-w64.org/).  
+- Add the following path to the Windows **Environment Variables** → **Path**:  
+```
+C:/MinGW/bin
+```
+
+2. OpenSSL (for MinGW-w64)
+- Download the package from: [MinGW-w64 OpenSSL](https://packages.msys2.org/packages/mingw-w64-x86_64-openssl)
+- Extract the package into:
+```
+C:/mingw64
+```
+
+> [!IMPORTANT]  
+> ⚠️ **Important Notice for Windows users**  
+> - Executables such as `fiptool.exe` depend on OpenSSL runtime DLLs.  
+>   - Add this directory to your **Environment Variables → Path**:  
+>     ```
+>     C:/mingw64/bin
+>     ```
+>   - Or copy the DLLs (`C:\mingw64\bin\libcrypto-3-x64.dll`) into:
+>     ```
+>     tools/bin/windows/
+>     ```
+>   - If skipped, running the tools will fail
+>
+> - The `firmware_compile.py` script also depends on `objcopy` (part of GNU binutils).  
+>   - Ensure `C:/MinGW/bin` is also in **Windows Environemnt Variables Path** so that `objcopy.exe` can be found.  
+>   - Without it, the script will fail during SREC/ELF conversions.
 
 ## JSON Configuration for a New Board
 
@@ -34,24 +154,59 @@ The `flash_images.json` file contains predefined image mappings for supported de
 
 `flash_images.json` supports several default boards. You can add a custom board to the configuration file by providing the following information:
 
+- **SoC**: Soc type
 - **bl2**: BL2 image name
 - **board_identification**: Board identification image name
 - **fip**: FIP image name
+- **atf_fdts**: FCONF device tree name
+- **uboot_dtb**: U-boot device tree name
 - **flash_writer**: Flash Writer image name
 - **ipl_flash_method**: Method used by the IPL bootloader for flashing (`xspi` or `emmc`)
 - **rootfs**: Root filesystem image name (`*.wic`)
 - **rootfs_flash_method**: Method to flash the SD card (`udp` or `otg`)
 
+This table below lists the available options (and sensible defaults) for `ipl_flash_method` and `rootfs_flash_method` per board.
+
+| Board        | SoC | `ipl_flash_method` (options) | Default | `rootfs_flash_method` (options) | Default |
+|--------------|-----|------------------------------|---------|----------------------------------|---------|
+| **rzg2l-sbc** | g2l | `xspi`                | `xspi`  | `udp`              | `udp`   |
+| **rzg2l-evk** | g2l | `xspi`, `emmc`        | `xspi`  | `udp`              | `udp`   |
+| **rzv2l-evk** | v2l | `xspi`, `emmc`        | `xspi`  | `udp`              | `udp`   |
+| **rzv2h-evk** | v2h | `xspi`                | `xspi`  | `udp`              | `udp`   |
+
+**Notes:**
+- *IPL flash method*: `emmc` for `rzv2h-evk` is **not supported yet**.
+- *IPL flash method*: `eSD` for all boards is **not supported yet**.
+- *Rootfs flash method*: `OTG` for all boards is **not supported yet**.
+- *Stability*: Rootfs flashing via `udp` on `rzg2l-evk` and `rzv2l-evk` is not stable and not recommended. Use balenaEtcher or the dd command to write the image instead.
+
+---
+
+## Field Reference
+
+- **`ipl_flash_method`**
+  Defines where the **IPL/BL2** image is flashed:
+  - `xspi` — xSPI flash for RZ/V2H, QSPI for RZV2L/RZG2L
+  - `emmc` — eMMC device
+
+- **`rootfs_flash_method`**
+  How the **root filesystem (.wic)** is delivered to the SD/eMMC target:
+  - `udp` — U-Boot `fastboot udp` over Ethernet
+  - `otg` — U-Boot `fastboot usb` (USB-OTG)
+
 Example of a sample board configuration in JSON:
 
 ```json
 "rzg2l-sbc": {
+    "soc": "g2l",
     "bl2": "bl2_bp_rzg2l-sbc.srec",
     "board_identification": "rzg2l-sbc-platform-settings.bin",
-    "fip": "fip-rzg2l-sbc.srec",
+    "fip": "fip_rzg2l-sbc.srec",
+    "atf_fdts": "rzg2l-sbc.dtb",
+    "uboot_dtb": "rzg2l-sbc.dtb",
     "flash_writer": "Flash_Writer_SCIF_rzg2l-sbc.mot",
     "ipl_flash_method": "xspi",
-    "rootfs": "core-image-weston.wic",
+    "rootfs": "core-image-minimal.wic",
     "rootfs_flash_method": "udp"
 }
 ```
@@ -69,20 +224,31 @@ flowchart TD
     classDef action fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
     classDef terminal fill:#d1fae5,stroke:#10b981,stroke-width:2px,font-weight:bold
 
-    A[Start]:::terminal --> B[Display available boards]:::action
+    A((Start)):::terminal --> B[Display available boards]:::action
     B --> C[User selects board]:::action
     C --> D[Display available serial ports]:::action
     D --> E[User selects port and baud rate]:::action
-    E --> F["Ask: Write rootfs (y/n)"]:::decision
-    F -->|n| G["Ask: Write IPL (y/n)"]:::decision
-    G -->|y| H["Ask: Select IPL method"]:::decision
-    H --> I{Method}:::decision
-    I -->|1| J[Write IPL by BootloaderFlash]:::action
-    I -->|2| K[Write IPL by UloadFlash]:::action
-    G -->|n| L[End]:::terminal
+
+    E --> F{Write RootFS?}:::decision
+    F -->|y| FR[Write RootFS to SD/eMMC]:::action
+    FR --> G{Write IPL?}:::decision
+    F -->|n| G{Write IPL?}:::decision
+
+    G -->|y| H{Select IPL method}:::decision
+    H -->|BootloaderFlash| M[Compile firmware: build BL2 & FIP with per-board DTB at runtime]:::action
+    M --> J[Write IPL by BootloaderFlash]:::action
+    H -->|ULoadFlash| K[Write IPL by ULoadFlash]:::action
+
+    G -->|n| L((End)):::terminal
     J --> L
     K --> L
 ```
+
+**Notes:**
+- Ensure the board is powered off before flashing.
+- Insert the SD card if rootfs flashing is selected.
+- For Bootloader-flash: set boot switches to SCIF download mode.
+- For Uload-flash or rootfs flashing: set boot switches to normal mode.
 
 ---
 
@@ -99,3 +265,40 @@ py universal_flash.py
 ```bash
 python3 universal_flash.py
 ```
+
+### Dedicated Flashing Scripts
+
+If preferred, individual scripts can be used for each flashing operation.
+
+#### Flash Bootloader
+
+This script is used to flash the initial bootloader image onto the board via a serial interface. It is typically used when setting up the board for the first time or recovering from a corrupted bootloader.
+
+Location:
+```
+host/tools/bootloader_flasherr/
+```
+
+Refer to the `Readme.md` file in that folder for detail instructions.
+
+#### Flash Bootloader from U-Boot Console
+
+This method allows bootloader updates directly from the U-Boot console without requiring changes to hardware boot modes. It is ideal for in-system updates after the system is already running.
+
+Location
+```
+host/tools/uload_bootloader/
+```
+
+Refer to the `Readme.md` file in that folder for detail instructions.
+
+#### Flash Root Filesystem to microSD Card
+
+This script is used to write the root filesystem and related images to a SD card, which the board uses to boot and run Linux.
+
+Location
+```
+host/tools/sd_creator/
+```
+
+Refer to the `Readme.md` file in that folder for detail instructions.
