@@ -76,6 +76,11 @@ mk_image() {
 		echo "==> Copying output to ${pf_build_dir}"
 		find "${FLASH_WRITER_DIR}" -maxdepth 1 -name '*.mot' -exec cp {} "${pf_build_dir}/" \;
 	fi
+	echo "======================================"
+	echo "Build finished."
+	echo "Output directories are under:"
+	ls -R "${FLASH_WRITER_DIR}/${build_dir}/"*
+	echo "======================================"
 }
 
 mk_clean() {

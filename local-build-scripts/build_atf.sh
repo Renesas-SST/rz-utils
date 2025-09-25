@@ -25,6 +25,7 @@ declare -A P2B=(
 	["RZG2L-EVK"]="g2l smarc_pmic_2"
 	["RZV2L-EVK"]="v2l smarc_rzv2l"
 	["RZV2H-EVK"]="v2h v2h_evk_1"
+	["RZ-CMN"]="cmn rz_cmn"
 )
 
 # Resolve PLAT/BOARD for a single PLATFORM
@@ -40,54 +41,26 @@ resolve_board() {
 
 mk_image_one() {
 	local platform="$1"
-	local image="$2"
+	shift
+	local images=("$@")
 	resolve_board "${platform}"
 
 	if [ "${ATF_MODE:-RELEASE}" = "DEBUG" ]; then
-		make -C "${ATF_DIR}" -j"${JOBS}" PLAT="${PLAT}" BOARD="${BOARD}" DEBUG=1 "${image}"
+		make -C "${ATF_DIR}" -j"${JOBS}" PLAT="${PLAT}" BOARD="${BOARD}" DEBUG=1 "${images[@]}"
 	else
-		make -C "${ATF_DIR}" -j"${JOBS}" PLAT="${PLAT}" BOARD="${BOARD}" "${image}"
+		make -C "${ATF_DIR}" -j"${JOBS}" PLAT="${PLAT}" BOARD="${BOARD}" "${images[@]}"
 	fi
 }
 
 mk_clean_one() {
 	local platform="$1"
 	resolve_board "${platform}"
-	make -C "${ATF_DIR}" clean || true
+	make -C "${ATF_DIR}" -j"${JOBS}" PLAT="${PLAT}" BOARD="${BOARD}" clean || true
 }
 
+# Clean all images
 mk_distclean_one() {
-	local platform="$1"
-	resolve_board "${platform}"
 	make -C "${ATF_DIR}" distclean || true
-}
-
-mk_image() {
-	local image="$1"
-	if [ "${PLATFORM}" = "RZ-CMN" ]; then
-		for pf in "${COMMON_PLATFORMS[@]}"; do
-			echo "==> Building ${image} for ${pf}"
-			mk_image_one "${pf}" "${image}"
-		done
-	else
-		mk_image_one "${PLATFORM}" "${image}"
-	fi
-}
-
-mk_clean() {
-	if [ "${PLATFORM}" = "RZ-CMN" ]; then
-		for pf in "${COMMON_PLATFORMS[@]}"; do mk_clean_one "${pf}"; done
-	else
-		mk_clean_one "${PLATFORM}"
-	fi
-}
-
-mk_distclean() {
-	if [ "${PLATFORM}" = "RZ-CMN" ]; then
-		for pf in "${COMMON_PLATFORMS[@]}"; do mk_distclean_one "${pf}"; done
-	else
-		mk_distclean_one "${PLATFORM}"
-	fi
 }
 
 sanitize_env() {
@@ -100,10 +73,11 @@ echo "Starting the ATF build '${cmd}' (PLATFORM=${PLATFORM}) in ${ATF_DIR}"
 sanitize_env
 
 case "${cmd}" in
-  clean)      mk_clean ;;
-  distclean)  mk_distclean ;;
-  bl2|bl31|all)
-			  mk_image "${cmd}" ;;
+  clean)      mk_clean_one "${PLATFORM}";;
+  distclean)  mk_distclean_one;;
+  bl2|bl31|dtbs)
+			  mk_image_one "${PLATFORM}" "${cmd}";;
+  all)  mk_image_one "${PLATFORM}" "${cmd}" "dtbs";;
   *)
 			  show_help ;;
 esac

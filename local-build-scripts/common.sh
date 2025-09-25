@@ -36,7 +36,7 @@ Option:
                 - bl2
                 - bl31
                 - all
-                - dtbs (not supported yet)
+                - dtbs
 
         4. flash-writer
             Build for Flash-Writer
@@ -54,16 +54,16 @@ Option:
 
 For example: 
     Build all images (Kernel image and device tree) for the Linux Kernel:
-        $ ./main-build.sh kernel full-image
+        $ ./main_build.sh kernel full-image
 
     Clean the Linux Kernel (Kernel image and device tree) output:
-        $ ./main-build.sh kernel clean
+        $ ./main_build.sh kernel clean
 
 Note: Before executing the build, please make sure that you have updated the configuration file: config.ini at the top of the build scripts folder.
 
 Platform Override:
     By default, PLATFORM is read from config.ini, but you can override it at runtime, for example:
-        $ PLAT=RZ-CMN ./main-build.sh kernel full-image
+        $ PLAT=RZ-CMN ./main_build.sh kernel full-image
 "
 # Help message
 show_help() {
