@@ -55,17 +55,31 @@ mk_clean_one() {
 }
 
 mk_image() {
+	local build_dir="build"
+	rm -rf "${FLASH_WRITER_DIR}/${build_dir}"
 	if [ "${PLATFORM}" = "RZ-CMN" ]; then
 		for pf in "${COMMON_PLATFORMS[@]}"; do
+			local pf_build_dir="${build_dir}/${pf}"
+			mkdir -p "${FLASH_WRITER_DIR}/${pf_build_dir}"
 			echo "==> Building Flash Writer for ${pf}"
 			mk_image_one "${pf}"
+			echo "==> Copying output to ${pf_build_dir}"
+			cp ${FLASH_WRITER_DIR}/AArch64_output/* "${FLASH_WRITER_DIR}/${pf_build_dir}/"
+			mk_clean_one "${pf}"
 		done
-		else
-		mk_image_one "${PLATFORM}"
+	else
+		local pf="${PLATFORM}"
+		local pf_build_dir="${build_dir}/${pf}"
+		mkdir -p "${pf_build_dir}"
+		echo "==> Building Flash Writer for ${pf}"
+		mk_image_one "${pf}"
+		echo "==> Copying output to ${pf_build_dir}"
+		find "${FLASH_WRITER_DIR}" -maxdepth 1 -name '*.mot' -exec cp {} "${pf_build_dir}/" \;
 	fi
 }
 
 mk_clean() {
+	rm -rf "${FLASH_WRITER_DIR}/build"
 	if [ "${PLATFORM}" = "RZ-CMN" ]; then
 		for pf in "${COMMON_PLATFORMS[@]}"; do mk_clean_one "${pf}"; done
 	else
