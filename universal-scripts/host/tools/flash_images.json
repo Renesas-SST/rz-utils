@@ -46,5 +46,17 @@
         "ipl_flash_method": "xspi",
         "rootfs": "core-image-minimal.wic",
         "rootfs_flash_method": "otg"
+    },
+    "rzv2h-rdk": {
+        "soc": "v2h",
+        "bl2": "bl2_bp_rzv2h-rdk.srec",
+        "board_identification": "rzv2h-rdk-platform-settings.bin",
+        "fip": "fip_rzv2h-rdk.srec",
+        "atf_fdts": "rzv2h-rdk-ver1.dtb",
+        "uboot_dtb": "rzv2h-rdk-ver1.dtb",
+        "flash_writer": "Flash_Writer_SCIF_RZV2H_DEV_INTERNAL_MEMORY.mot",
+        "ipl_flash_method": "xspi",
+        "rootfs": "core-image-minimal.wic",
+        "rootfs_flash_method": "udp"
     }
 }

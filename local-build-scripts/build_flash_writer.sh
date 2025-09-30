@@ -21,6 +21,7 @@ declare -A FW_P2B=(
 	["RZG2L-EVK"]="RZG2L_SMARC_PMIC"
 	["RZV2L-EVK"]="RZV2L_SMARC_PMIC"
 	["RZV2H-EVK"]="RZV2H_DEV"
+	["RZV2H-RDK"]="RZV2H_DEV"
 )
 
 sanitize_env() {
