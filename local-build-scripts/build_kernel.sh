@@ -24,6 +24,7 @@ declare -A KERN_DEFCONFIG=(
 	["RZG2L-EVK"]="rzv2l_defconfig"
 	["RZV2L-EVK"]="rzv2l_defconfig"
 	["RZV2H-EVK"]="rzv2h_defconfig"
+	["RZV2H-RDK"]="rzv2h_defconfig"
 )
 
 # Resolve DEFCONFIG

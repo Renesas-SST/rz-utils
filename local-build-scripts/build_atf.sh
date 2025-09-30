@@ -25,6 +25,7 @@ declare -A P2B=(
 	["RZG2L-EVK"]="g2l smarc_pmic_2"
 	["RZV2L-EVK"]="v2l smarc_rzv2l"
 	["RZV2H-EVK"]="v2h v2h_evk_1"
+	["RZV2H-RDK"]="v2h v2h_evk_1"
 	["RZ-CMN"]="cmn rz_cmn"
 )
 
