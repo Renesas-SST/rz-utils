@@ -1,17 +1,20 @@
 # firmware-compile.py
 
 ## Overview
-`firmware-compile.py` is a helper script for building Renesas RZ family firmware artifacts, including **BL2**, **Boot Parameter (BP)** files, **U-Boot** binaries, and **FIP** packages.  
+
+`firmware-compile.py` is a helper script for building Renesas RZ family firmware artifacts, including **BL2**, **Boot Parameter (BP)** files, **U-Boot** binaries, and **FIP** packages.
 
 It automatically pulls board and flash-method–specific configuration (such as VMA addresses) from:
-- [`boards_flash_config.toml`](../config/boards_flash_config.toml)  
-- [`flash_images.json`](../flash_images.json)  
+
+- [`boards_flash_config.toml`](../config/boards_flash_config.toml)
+- [`flash_images.json`](../flash_images.json)
 
 The script supports multiple boards and flash methods without hardcoding addresses.
 
 ---
 
 ## Features
+
 - Generates **BL2 + DTB** combined binary.
 - Creates **Boot Parameter + BL2** binary and `.srec` with correct VMA offset.
 - Builds **U-Boot (nodtb) + DTB** combined binary.
@@ -36,6 +39,7 @@ target/images/
 ```
 
 ## Usage
+
 Basic example:
 
 ```bash
@@ -43,6 +47,7 @@ python3 firmware-compile.py --soc g2l --board rzg2l-sbc --method xspi
 ```
 
 This will:
+
 1. Build bl2_&lt;board&gt;.bin (BL2 + board DTB)
 2. Build bl2_bp_&lt;board&gt;.bin and .srec
 3. Build u-boot_&lt;board&gt;.bin (U-Boot + board DTB)
@@ -50,39 +55,39 @@ This will:
 
 ## CLI Options
 
-| Option                | Default          | Description |
-|-----------------------|------------------|-------------|
-| `--board`             | `rzg2l-sbc`      | Target board name (must exist in `boards_flash_config.toml` and `flash_images.json`). |
-| `--soc`               | `g2l`            | Target SoC family (g2l, v2l, v2h). |
-| `--method`            | `xspi`           | Flash method (`xspi` or `emmc`). |
-| `--bl2`               | auto from images | Path to BL2 binary (override default). |
-| `--atf-fdts`          | auto from JSON   | ATF FDT(s) to append to BL2. |
-| `--uboot-dtbs`        | auto from JSON   | U-Boot DTB(s) to append to U-Boot nodtb. |
-| `--bl31`              | auto from images | Path to BL31 binary (override default). |
-| `--u-boot-nodtb`      | auto from images | Path to U-Boot (nodtb) binary (override default). |
-| `--out-dir`           | `out`            | Output directory for generated files. |
-| `--bootparameter`     | auto search      | Path to `bpgen` tool (override search path). |
-| `--fiptool`           | auto search      | Path to `fiptool` tool (override search path). |
-| `--objcopy`           | auto search      | Path to `objcopy` tool (override search path). |
-| `--fip-align`         | `16`             | FIP alignment. |
-| `--fip-vma`           | from TOML        | Override VMA for FIP `.srec`. |
-| `--bl2-bp-vma`        | from TOML        | Override VMA for BL2+BP `.srec`. |
-| `--fip-tb-kind`       | `soc`            | FIP firmware kind: `soc` or `tb`. |
-| `--skip-bl2-output`   | *(flag)*         | Skip BL2 + DTB step. |
+| Option              | Default          | Description                                                                           |
+| ------------------- | ---------------- | ------------------------------------------------------------------------------------- |
+| `--board`           | `rzg2l-sbc`      | Target board name (must exist in `boards_flash_config.toml` and `flash_images.json`). |
+| `--soc`             | `g2l`            | Target SoC family (g2l, v2l, v2h).                                                    |
+| `--method`          | `xspi`           | Flash method (`xspi`, `emmc`, or `esd`).                                              |
+| `--bl2`             | auto from images | Path to BL2 binary (override default).                                                |
+| `--atf-fdts`        | auto from JSON   | ATF FDT(s) to append to BL2.                                                          |
+| `--uboot-dtbs`      | auto from JSON   | U-Boot DTB(s) to append to U-Boot nodtb.                                              |
+| `--bl31`            | auto from images | Path to BL31 binary (override default).                                               |
+| `--u-boot-nodtb`    | auto from images | Path to U-Boot (nodtb) binary (override default).                                     |
+| `--out-dir`         | `out`            | Output directory for generated files.                                                 |
+| `--bootparameter`   | auto search      | Path to `bpgen` tool (override search path).                                          |
+| `--fiptool`         | auto search      | Path to `fiptool` tool (override search path).                                        |
+| `--objcopy`         | auto search      | Path to `objcopy` tool (override search path).                                        |
+| `--fip-align`       | `16`             | FIP alignment.                                                                        |
+| `--fip-vma`         | from TOML        | Override VMA for FIP `.srec`.                                                         |
+| `--bl2-bp-vma`      | from TOML        | Override VMA for BL2+BP `.srec`.                                                      |
+| `--fip-tb-kind`     | `soc`            | FIP firmware kind: `soc` or `tb`.                                                     |
+| `--skip-bl2-output` | *(flag)*         | Skip BL2 + DTB step.                                                                  |
 
 ---
 
 ## Output Files
 
-| File Name                     | Description                                         |
-|--------------------------------|-----------------------------------------------------|
-| `bl2_<board>.bin`              | BL2 + ATF DTB binary                                |
-| `bl2_bp_<board>.bin`           | Boot Parameter + BL2 binary                         |
-| `bl2_bp_esd_<board>.bin`       | ESD copy of BL2 BP before BL2 append                |
-| `bl2_bp_<board>.srec`          | BL2 BP in Motorola S-record format (with correct VMA) |
-| `u-boot_<board>.bin`           | U-Boot (nodtb) + U-Boot DTB binary                  |
-| `fip_<board>.bin`              | Firmware Image Package binary                       |
-| `fip_<board>.srec`             | FIP in Motorola S-record format (with correct VMA)  |
+| File Name                | Description                                           |
+| ------------------------ | ----------------------------------------------------- |
+| `bl2_<board>.bin`        | BL2 + ATF DTB binary                                  |
+| `bl2_bp_<board>.bin`     | Boot Parameter + BL2 binary                           |
+| `bl2_bp_esd_<board>.bin` | ESD copy of BL2 BP before BL2 append                  |
+| `bl2_bp_<board>.srec`    | BL2 BP in Motorola S-record format (with correct VMA) |
+| `u-boot_<board>.bin`     | U-Boot (nodtb) + U-Boot DTB binary                    |
+| `fip_<board>.bin`        | Firmware Image Package binary                         |
+| `fip_<board>.srec`       | FIP in Motorola S-record format (with correct VMA)    |
 
 ## Notes
 
