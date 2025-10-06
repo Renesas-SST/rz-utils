@@ -42,7 +42,7 @@
         "fip": "fip_rzv2h-evk.srec",
         "atf_fdts": "rzv2h-evk-ver1.dtb",
         "uboot_dtb": "rzv2h-evk-ver1.dtb",
-        "flash_writer": "Flash_Writer_SCIF_RZV2H_DEV_INTERNAL_MEMORY.mot",
+        "flash_writer": "Flash_Writer_SCIF_rzv2h-evk.mot",
         "ipl_flash_method": "xspi",
         "rootfs": "core-image-minimal.wic",
         "rootfs_flash_method": "udp"
