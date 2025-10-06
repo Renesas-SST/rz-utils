@@ -4,6 +4,7 @@ import json
 import argparse
 import glob
 from dataclasses import dataclass
+from string import ascii_uppercase
 from serial.tools.list_ports import comports
 
 # Importing utility applications
@@ -124,7 +125,7 @@ class UniversalFlashUtil:
         except Exception as e:
             print(f"Warning: Error loading board config: {e}")
 
-    def input_menu(self):
+    def input_board_selection(self):
         # Board selection
         if not self.boards_data:
             print("No board data loaded.")
@@ -146,10 +147,9 @@ class UniversalFlashUtil:
             print("\nOperation cancelled by user.")
             return False
 
-        # Serial port and baud rate selection
+    def input_serial_selection(self):
         ports = [p.device for p in comports()]
         if not ports:
-            print("No serial ports detected. Please connect your board and try again.")
             return False
         print("Available serial ports:")
         for i, port in enumerate(ports):
@@ -183,7 +183,7 @@ class UniversalFlashUtil:
 
         # Map paths from images dir + flash_images.json
         board_soc = self.boards_data[self.selected_board_name]["soc"]
-        bl2_path = os.path.join(self.__imagesDir, "atf", "bl2-rz-cmn.bin")
+        bl2_path = os.path.join(self.__imagesDir, "atf", f"bl2-{self.selected_info.ipl_flash_method}-rz-cmn.bin")
         bl31_path = os.path.join(self.__imagesDir, "atf", "bl31-rz-cmn.bin")
         atf_fdts_path = os.path.join(self.__imagesDir, "atf", "fdts", self.boards_data[self.selected_board_name]['atf_fdts'])
         uboot_dtbs_path = os.path.join(self.__imagesDir, "u-boot", "dtbs", self.boards_data[self.selected_board_name]['uboot_dtb'])
@@ -242,6 +242,50 @@ class UniversalFlashUtil:
             else:
                 print("Please enter 'y' or 'n'.")
 
+    def detect_esd_devices(self):
+        devices = []
+        system = platform.system()
+        if system == "Linux":
+            devices.extend(sorted(glob.glob('/dev/sd[a-z]')))
+            devices.extend(sorted(glob.glob('/dev/mmcblk[0-9]')))
+        elif system == "Windows":
+            try:
+                import ctypes
+                mask = ctypes.windll.kernel32.GetLogicalDrives()
+                for letter in ascii_uppercase:
+                    if mask & 1:
+                        drive_path = f"{letter}:"
+                        drive_type = ctypes.windll.kernel32.GetDriveTypeW(f"{letter}:\\")
+                        if drive_type == 2:
+                            devices.append(f"{drive_path}")
+                    mask >>= 1
+            except Exception:
+                pass
+        return devices
+
+    def prompt_esd_device(self):
+        candidates = self.detect_esd_devices()
+        selection = None
+        if candidates:
+            print("Available removable drives:")
+            for idx, device in enumerate(candidates, start=1):
+                print(f"  {idx}. {device}")
+            while selection is None:
+                choice = input("Select drive by number (press Enter to enter a path manually): ").strip()
+                if not choice:
+                    break
+                try:
+                    choice_idx = int(choice) - 1
+                    if 0 <= choice_idx < len(candidates):
+                        selection = candidates[choice_idx]
+                    else:
+                        print("Invalid selection. Please choose a listed number.")
+                except ValueError:
+                    print("Invalid selection. Please choose a listed number.")
+        if not selection:
+            print("No SD card device provided. Aborting eSD flashing.")
+            return None
+        return selection
     def select_ipl_method(self):
         options = {
             1: "BootloaderFlash",
@@ -262,10 +306,15 @@ class UniversalFlashUtil:
     def run(self):
         self.load_json()
         self.load_board_config()
-        if not self.input_menu():
-            return
+        self.input_board_selection()
         # Get information for the selected board
         self.info_get()
+
+        # eSD flashing requires no serial port
+        ret = self.input_serial_selection()
+        if not ret and self.selected_info.ipl_flash_method != "esd":
+            print("No serial ports detected. Please connect your board and try again.")
+            return
 
         # Write IPL
         if(self.yes_no_prompt("Do you want to write the IPL?")):
@@ -281,12 +330,28 @@ class UniversalFlashUtil:
                     '--serial_port', f"{self.selected_port}",
                     '--serial_port_baud', f"{self.selected_baud_rate}",
                     '--image_writer', f"{self.__imagesDir}/{self.selected_info.flash_writer}",
-                    '--image_bl2', f"{self.__imagesDir}/{self.selected_info.bl2}",
-                    '--image_fip', f"{self.__imagesDir}/{self.selected_info.fip}",
                     '--image_bid', f"{self.__imagesDir}/{self.selected_info.board_identification}"
                 ]
+
+                if (self.selected_info.ipl_flash_method == "esd"):
+                    esd_device = self.prompt_esd_device()
+                    if not esd_device:
+                        print("Skipping eSD flashing: no SD card device selected.")
+                        return
+                    bootloader_args.extend(['--image_bl2', f"{self.__imagesDir}/bl2_{self.selected_board_name}.bin"])
+                    bootloader_args.extend(['--image_bl2_esd', f"{self.__imagesDir}/bl2_bp_esd_{self.selected_board_name}.bin"])
+                    bootloader_args.extend(['--image_fip', f"{self.__imagesDir}/fip_{self.selected_board_name}.bin"])
+                    bootloader_args.extend(['--esd_device', esd_device])
+                else: # xspi or emmc
+                    bootloader_args.extend(['--image_bl2', f"{self.__imagesDir}/{self.selected_info.bl2}"])
+                    bootloader_args.extend(['--image_fip', f"{self.__imagesDir}/{self.selected_info.fip}"])
+
                 bootloaderFlashUtil = BootloaderFlashUtil(args=bootloader_args)
-                bootloaderFlashUtil.writeBootloader()
+                if (self.selected_info.ipl_flash_method == "esd"):
+                    bootloaderFlashUtil.writeBootloaderESD()
+                else:
+                    bootloaderFlashUtil.setupSerialPort()
+                    bootloaderFlashUtil.writeBootloader()
 
             # UloadFlash
             else:
