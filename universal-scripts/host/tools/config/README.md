@@ -30,6 +30,13 @@ BID = ["00810", "1C700"]
 BL2 = ["1", "1", "11E00"]
 FIP = ["1", "100", "00000", "2", "8"]
 BID = ["1", "FA", "810"]
+
+# Bootloader flash eSD
+[rzg2l-evk.esd]
+BL2_BP_ESD = ["1", "1"]
+BL2 = ["8"]
+BID = ["250"]
+FIP = ["256"]
 ```
 
 ## How to support new board to script
@@ -53,9 +60,15 @@ load_address = "<working_ram>"
 "BID" = ["<binary_size (.bin) / srec_top_address (.srec)>", "<flash_address>"]
 
 [<board_name>.emmc]
-"BL2" = ["<area>", "<sector_start>", "<program_start_address>"]
-"FIP" = ["<area>", "<sector_start>", "<program_start_address>", "<ext_csd_b1>", "<ext_csd_b3>"]
-"BID" = ["<area>", "<sector_start>", "<file_size_in_bytes>"]
+"BL2": ["<area>", "<sector_start>", "<program_start_address>"]
+"FIP": ["<area>", "<sector_start>", "<program_start_address>", "<ext_csd_b1>", "<ext_csd_b3>"]
+"BID": ["<area>", "<sector_start>", "<binary_size>"]
+
+[<board_name>.esd]
+BL2_BP_ESD = ["<sector_start">, <sector_count>]
+BL2        = ["<sector_start">]
+BID        = ["<sector_start">]
+FIP        = ["<sector_start">]
 ```
 
 Each board has a dedicated section for its specific configuration. The available setting types are as follows:
@@ -77,7 +90,13 @@ Each board has a dedicated section for its specific configuration. The available
 - **emmc**:
   - BL2: Specify `area`, `sector_start`, and `program_start_address` sequentially for the BL2 image.
   - FIP: Specify `area`, `sector_start`, `program_start_address`, `ext_csd_b1`, and `ext_csd_b3` sequentially for the FIP image.
-  - BID: Provide `area`, `sector_start`, `program_start_address`, `ext_csd_b1`, and `ext_csd_b3` sequentially for the board identification image.
+  - BID: Specify `area`, `sector_start`, `binary_size` for the board identification image.
+
+- **esd**:
+  - BL2_BP_ESD: Specify `sector_start`, and `sector_count` sequentially for the BL2 bootparam eSD image.
+  - BL2: Specify `sector_start` for the BL2 image.
+  - BID: Specify `sector_start` for the FIP image.
+  - FIP: Specify `sector_start` for the board identification image.
 
 > [!NOTE]
 > Entries in `boards_flash_config.toml` are configuration definitions used by the scripts and may also serve as templates for future development.

@@ -3,6 +3,9 @@
 # Imports
 import serial
 import argparse
+import platform
+import shutil
+import subprocess
 import time
 import os
 import glob
@@ -31,12 +34,17 @@ class BootloaderFlashUtil:
 		self.__scriptDir = os.path.dirname(os.path.abspath(__file__))
 		self.__rootDir = os.path.abspath(os.path.join(self.__scriptDir, '..', '..', '..'))
 		self.__imagesDir = os.path.abspath(os.path.join(self.__rootDir, 'target', 'images'))
+		self.__sdCardDevice = None
+
+		if platform.system() == "Windows":
+			self.__dd = os.path.abspath(os.path.join(self.__scriptDir, 'tools', 'dd.exe'))
+		elif platform.system() == "Linux":
+			self.__dd = "dd"
 		self.__oldPort = None
 		self.__initialConnection = True
 
 		self.__setupArgumentParser(args)
 		self.__getFlashAddress()
-		self.__setupSerialPort()
 
 	# Setup CLI parser
 	def __setupArgumentParser(self, args=[]):
@@ -90,6 +98,12 @@ class BootloaderFlashUtil:
 									action='store',
 									type=str,
 									help='Path to bl2 image (defaults to: <path/to/your/package>/target/images/bl2_bp_rzg2l-sbc.srec).')
+		self.__parser.add_argument('--image_bl2_esd',
+									default=f'{self.__imagesDir}/bl2_bp_esd_rzg2l-sbc.bin',
+									dest='bl2EsdImage',
+									action='store',
+									type=str,
+									help='[Only used in eSD Flash] (defaults to: <path/to/your/package>/target/images/bl2_bp_esd_rzg2l-sbc.bin).')
 		self.__parser.add_argument('--image_fip',
 									default=f'{self.__imagesDir}/fip_rzg2l-sbc.srec',
 									dest='fipImage',
@@ -102,14 +116,23 @@ class BootloaderFlashUtil:
 									action='store',
 									type=str,
 									help='Path to board identification image (defaults to: <path/to/your/package>/target/images/rzg2l-sbc-platform-settings.bin).')
+		self.__parser.add_argument('--esd_device',
+									dest='esdDevice',
+									action='store',
+									type=str,
+									help='[Only used in eSD Flash] Raw device path of the SD card to program (e.g., /dev/sda or E: SDCARD).')
 
 		if args:
 			self.__args = self.__parser.parse_args(args)
 		else:
 			self.__args = self.__parser.parse_args()
 
+	@property
+	def flashMethod(self):
+		return self.__args.flashMethod
+
 	# Setup Serial Port
-	def __setupSerialPort(self):
+	def setupSerialPort(self):
 		try:
 			# Store the by-id path if provided
 			self.__serialPortById = getattr(self.__args, 'serialPortById', None)
@@ -637,6 +660,82 @@ class BootloaderFlashUtil:
 		# If the timeout is reached without a connection, raise an error
 		raise serial.SerialException("Device disconnected and did not reconnect within 10 seconds")
 
+	def __setupSDCardDrive(self):
+		if self.__sdCardDevice:
+			return self.__sdCardDevice
+
+		if not self.__args.esdDevice:
+			die(msg='--esd_device must be provided when using the eSD flash method.')
+
+		self.__sdCardDevice = self.__args.esdDevice
+		return self.__sdCardDevice
+
+	def writeBootloaderESD(self):
+		target_device = self.__setupSDCardDrive()
+
+		self.__validate_dd_tool()
+
+		# Check file exists and is .bin
+		self.__resolve_bin_image(self.__args.bl2EsdImage)
+		self.__resolve_bin_image(self.__args.bl2Image)
+		self.__resolve_bin_image(self.__args.fipImage)
+		self.__resolve_bin_image(self.__args.bidImage)
+
+		esd_config = self.__flashAddress["esd"]
+		if esd_config is None:
+			die(msg=f'eSD flash is not configured for board {self.__args.boardName}.')
+
+		# Run dd to flash images
+		print(f"Flashing eSD on device {target_device}...")
+		self.__run_dd(self.__args.bl2EsdImage, target_device, esd_config["BL2_BP_ESD"][0], esd_config["BL2_BP_ESD"][1])
+		self.__run_dd(self.__args.bl2Image, target_device, esd_config["BL2"][0])
+		self.__run_dd(self.__args.bidImage, target_device, esd_config["BID"][0])
+		self.__run_dd(self.__args.fipImage, target_device, esd_config["FIP"][0])
+
+		self.__finalize_esd_flash(target_device)
+		print("Completed eSD flashing. You can safely remove the SD card once the device is unmounted.")
+
+	def __run_dd(self, source, target_device, seek, count=None):
+		cmd = [self.__dd, f"if={source}", f"of={target_device}", f"seek={seek}", "bs=512", "conv=fsync"]
+		if count:
+			cmd.append(f"count={count}")
+
+		print(f"Executing: {' '.join(cmd)}")
+		try:
+			subprocess.run(cmd, check=True)
+		except FileNotFoundError:
+			die(msg=f'dd command not found at {self.__dd}.')
+		except subprocess.CalledProcessError as exc:
+			die(msg=f'dd command failed with exit code {exc.returncode} while flashing {source}.')
+
+	def __validate_dd_tool(self):
+		if platform.system() == "Windows":
+			if not os.path.exists(self.__dd):
+				die(msg=f'dd executable not found at {self.__dd}.')
+		else:
+			if shutil.which(self.__dd) is None:
+				die(msg='dd command not available on the system PATH.')
+
+	def __resolve_bin_image(self, image_path):
+		if not os.path.exists(image_path):
+			die(msg=f'The file {image_path} does not exist.')
+		if os.path.splitext(image_path)[1].lower() != '.bin':
+			die(msg=f"The file {image_path} is not a .bin file and no matching .bin file was found. eSD flashing requires binary images.")
+
+	def __finalize_esd_flash(self, target_device):
+		if platform.system() == "Windows":
+			return
+
+		try:
+			subprocess.run(['sync'], check=True)
+		except (FileNotFoundError, subprocess.CalledProcessError):
+			print('Warning: Unable to run sync command.')
+
+		try:
+			subprocess.run(['eject', target_device], check=True)
+		except (FileNotFoundError, subprocess.CalledProcessError):
+			print(f'Warning: Unable to eject {target_device}. Please eject it manually if required.')
+
 # Util function to die with error
 def die(msg='', code=1):
 	print(f'Error: {msg}')
@@ -645,7 +744,11 @@ def die(msg='', code=1):
 def main():
 	bootloaderFlashUtil = BootloaderFlashUtil()
 
-	bootloaderFlashUtil.writeBootloader()
+	if bootloaderFlashUtil.flashMethod == 'esd':
+		bootloaderFlashUtil.writeBootloaderESD()
+	else:
+		bootloaderFlashUtil.setupSerialPort()
+		bootloaderFlashUtil.writeBootloader()
 
 if __name__ == '__main__':
 	main()
