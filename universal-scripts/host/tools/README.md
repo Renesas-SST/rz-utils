@@ -40,6 +40,7 @@ The flashing script depends on the following Python packages. Install them if mi
 If Python 3.12 is in use: set up a virtual environment first.
 
 ```shell
+renesas@builder-pc:~/rz-cmn-srp-3.0/host/tools#  sudo apt update
 renesas@builder-pc:~/rz-cmn-srp-3.0/host/tools#  sudo apt install python3.12-venv
 renesas@builder-pc:~/rz-cmn-srp-3.0/host/tools#  python3 -m venv .venv
 renesas@builder-pc:~/rz-cmn-srp-3.0/host/tools#  source .venv/bin/activate
@@ -107,13 +108,61 @@ target/images/
 
 #### Linux
 
-Install the GNU toolchain and OpenSSL development package:
+Install the required toolchain, OpenSSL headers and fastboot:
 
-```
-sudo apt-get install build-essential libssl-dev
+```sh
+sudo apt-get update
+sudo apt-get install build-essential libssl-dev android-tools-fastboot -y
 ```
 
 #### Windows
+
+**USB OTG Flashing on Windows**
+
+Fastboot/OTG flashing on Windows requires the device's **Fastboot / USB-download** interface to use the **WinUSB** driver.
+
+> **Note:** Windows binds drivers to the **device/interface present at install time** (VID/PID[/MI]). This Fastboot interface exists **only while** the board is connected over OTG **and** go to OTG download mode.
+
+**Applicability**
+
+- **Required** for: **RZ/G2L-EVK**, **RZ/V2L-EVK**, **RZ/V2H-EVK** (when using OTG flashing).
+- **Not applicable** to: **RZ/G2L-SBC** (no OTG port)
+
+1. **Prepare connections**
+   - Connect the board's USB-to-serial to the PC and open a terminal (115200 8-N-1).
+   - Open **Tera Term** (or any serial console) on the correct COM port/baud.
+
+2. **Enter U-Boot and switch to USB OTG Fastboot**
+   - **Power on** the board and **interrupt autoboot** to get a `U-Boot>` prompt.
+   - Connect the board's **USB OTG** port to the PC.
+   - At the U-Boot prompt, run:
+     ```bash
+     setenv serial# 'Renesas1'
+     fastboot usb 27
+     ```
+     > This places the board into **USB OTG fastboot/download** mode.\
+     > `27` is the index used on RZ Common System
+
+3. **Bind WinUSB using Zadig**
+   - Download the latest **[Zadig](https://zadig.akeo.ie/)** and run it (no installation needed).
+   - In Zadig, go to **Options → List All Devices**.
+   - From the dropdown, select the device that represents the bootloader/fastboot interface.
+     - **USB Download Gadget**
+   - On the right, set **Driver** to **WinUSB**.
+   - Click **Install Driver** (or **Replace Driver**).
+
+4. **Verify**
+   - Open **PowerShell** or **Command Prompt** and run:
+     ```powershell
+     .\path\to\package\sd_creator\tools\fastboot.exe devices
+     ```
+
+     Expected:
+     ```
+      Renesas1         fastboot
+     ```
+
+**Windows Build Prerequisites (GNU binutils + OpenSSL)**
 
 For Windows builds, both **GNU binutils** and **OpenSSL** are required to generate pre-compiled binaries.
 
@@ -170,16 +219,14 @@ This table below lists the available options (and sensible defaults) for `ipl_fl
 | Board        | SoC | `ipl_flash_method` (options) | Default | `rootfs_flash_method` (options) | Default |
 |--------------|-----|------------------------------|---------|----------------------------------|---------|
 | **rzg2l-sbc** | g2l | `xspi`                | `xspi`  | `udp`              | `udp`   |
-| **rzg2l-evk** | g2l | `xspi`, `emmc`        | `xspi`  | `udp`              | `udp`   |
-| **rzv2l-evk** | v2l | `xspi`, `emmc`        | `xspi`  | `udp`              | `udp`   |
-| **rzv2h-evk** | v2h | `xspi`                | `xspi`  | `udp`              | `udp`   |
+| **rzg2l-evk** | g2l | `xspi`, `emmc`        | `xspi`  | `udp`, `otg`       | `otg`   |
+| **rzv2l-evk** | v2l | `xspi`, `emmc`        | `xspi`  | `udp`, `otg`       | `otg`   |
+| **rzv2h-evk** | v2h | `xspi`                | `xspi`  | `udp`, `otg`       | `otg`   |
 
 **Notes:**
 - *IPL flash method*: `emmc` for `rzv2h-evk` is **not supported yet**.
 - *IPL flash method*: `eSD` for all boards is **not supported yet**.
-- *Rootfs flash method*: `OTG` for all boards is **not supported yet**.
-- *Stability*: Rootfs flashing via `udp` on `rzg2l-evk` and `rzv2l-evk` is not stable and not recommended. Use balenaEtcher or the dd command to write the image instead.
-
+- *RZ/G2L-SBC*: `otg` flashing is not supported. This board supports UDP flashing only.
 ---
 
 ## Field Reference
@@ -249,6 +296,14 @@ flowchart TD
 - Insert the SD card if rootfs flashing is selected.
 - For Bootloader-flash: set boot switches to SCIF download mode.
 - For Uload-flash or rootfs flashing: set boot switches to normal mode.
+- Rootfs flash (UDP Fastboot): U-Boot fastboot-udp uses a single active Ethernet MAC per board. If multiple RJ45/PHY ports exist, only one is active (depending on board support). Select the interface via the interactive menu in universal_flash (when Rootfs flash is selected).
+
+  | Board       | Ethernet port to use |
+  |------------|------------------------|
+  | rzg2l-sbc  | 1 |
+  | rzv2l-evk  | 0 |
+  | rzg2l-evk  | 0 |
+  | rzv2h-evk  | 0, 1 |
 
 ---
 

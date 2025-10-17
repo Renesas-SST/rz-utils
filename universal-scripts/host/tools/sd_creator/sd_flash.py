@@ -16,11 +16,14 @@ if sys.version_info >= (3, 11):  # pragma: Python version >=3.11
 else:  # pragma: Python version <3.11
     import tomli as tomllib
 
+DEFAULT_FASTBOOT_SERIAL = "Renesas_RZ_CMN"
+
 class SdFlashUtil:
 	def __init__(self, args=None):
 		self.__scriptDir = os.path.dirname(os.path.abspath(__file__))
 		self.__rootDir = os.path.abspath(os.path.join(self.__scriptDir, '..', '..', '..'))
 		self.__imagesDir = os.path.abspath(os.path.join(self.__rootDir, 'target', 'images'))
+		self.__fastbootDevice = DEFAULT_FASTBOOT_SERIAL
 
 		if platform.system() == "Windows":
 			self.__fastboot = os.path.abspath(os.path.join(self.__scriptDir, 'tools', 'fastboot.exe'))
@@ -117,13 +120,34 @@ class SdFlashUtil:
 			exit()
 
 	def __listDevice(self):
-		command_dev = 'fastboot devices'
-		print (command_dev)
+		fb = self.__fastboot
+		cmd = [fb, "devices"]
 		try:
-			subprocess.run(command_dev, shell=True, check=True)
-			print("List device OK.")
-		except subprocess.CalledProcessError as e:
-			die(msg="Error running the command_dev: {e}")
+			res = subprocess.run(
+				cmd,
+				capture_output=True,
+				text=True,
+				check=False,
+				timeout=10
+			)
+		except subprocess.TimeoutExpired:
+			die(msg="fastboot timed out while listing devices")
+
+		if res.returncode != 0:
+			die(msg=f"fastboot failed (rc={res.returncode}): {res.stderr.strip()}")
+
+		out = (res.stdout or "").strip()
+		devices = []
+		for line in out.splitlines():
+			parts = line.split()
+			if len(parts) >= 2 and parts[1].startswith("fastboot"):
+				devices.append(parts[0])
+
+		if devices:
+			print("Fastboot device(s): " + ", ".join(devices))
+		else:
+			print("No fastboot devices detected.")
+		return devices
 
 	# Function to write bootloader
 	def writeRootfs(self):
@@ -177,15 +201,20 @@ class SdFlashUtil:
 
 	def __handle_otg_fastboot(self):
 		print('fastboot usb otg mode')
-		self.__writeSerialCmd("setenv serial# 'Renesas1'")
+		self.__writeSerialCmd(f"setenv serial# {self.__fastbootDevice}")
 		self.__writeSerialCmd('saveenv')
 		self.__serialRead('OK')
-		self.__writeSerialCmd(f'{self.__fastboot} usb 27')
+		self.__writeSerialCmd('fastboot usb 27')
 		time.sleep(3)
 
-		self.__listDevice()
+		devs = self.__listDevice()
+		if f"{self.__fastbootDevice}" not in devs:
+			die(msg=(
+				f"Fastboot device '{self.__fastbootDevice}' not found.\n"
+				"Ensure the board is connected via the USB OTG port and that all prerequisites (see README) are met"
+			))
 
-		self.__runSubprocessCommand(f"{self.__fastboot} -s Renesas1 flash mmc0 {self.__args.rootfsImage}")
+		self.__runSubprocessCommand(f"{self.__fastboot} -s {self.__fastbootDevice} flash mmc0 {self.__args.rootfsImage}")
 
 	def __runSubprocessCommand(self, command):
 		try:
