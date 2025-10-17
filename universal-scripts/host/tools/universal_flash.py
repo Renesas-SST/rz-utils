@@ -175,9 +175,6 @@ class UniversalFlashUtil:
         # Write Rootfs
         if(self.yes_no_prompt("Do you want to write the rootfs?")):
             print("Writing rootfs...")
-            if (self.selected_info.rootfs_flash_method == "udp"):
-                self.selected_ip_address = input(f"Enter IP address for fastboot udp (default {self.selected_ip_address}): ") or self.selected_ip_address
-                ether_port = input("Enter the Ethernet port number (default 1): ") or "1"
 
             # Prepare arguments for SD Flash
             sdflash_args = [
@@ -185,10 +182,23 @@ class UniversalFlashUtil:
                 '--serial_port', f"{self.selected_port}",
                 '--serial_port_baud', f"{self.selected_baud_rate}",
                 '--fastboot_type', f"{self.selected_info.rootfs_flash_method}",
-                '--ether_port', ether_port,
                 '--image_rootfs', f"{self.__imagesDir}/{self.selected_info.rootfs}",
-                '--ip_address', f"{self.selected_ip_address}",
             ]
+
+            method = (self.selected_info.rootfs_flash_method or "").lower()
+
+            if method == "udp":
+                self.selected_ip_address = input(f"Enter IP address for fastboot udp (default {self.selected_ip_address}): ") or self.selected_ip_address
+                ether_port = input("Enter the Ethernet port number (default 1): ") or "1"
+                sdflash_args += ['--ether_port', ether_port,
+                         '--ip_address', self.selected_ip_address]
+            elif method == "otg":
+                # No Ethernet/IP options needed for OTG/USB fastboot
+                pass
+            else:
+                print(f"Unsupported rootfs flash method: '{self.selected_info.rootfs_flash_method}'")
+                return False
+
             sdFlashUtil = SdFlashUtil(args=sdflash_args)
             sdFlashUtil.writeRootfs()
 

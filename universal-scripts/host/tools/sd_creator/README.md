@@ -1,107 +1,195 @@
 # Root filesystem Programming/Flashing Procedure for RZ board on multiple OS environment
 
-This document introduces the relevant tools and outlines the specific steps for using the Python script `sd_flash.py` to program a filesystem image.
+This document introduces the comprehensive instructions for flashing a root filesystem (`.wic`) to RZ boards using `sd_flash.py`. It includes prerequisites, Fastboot availability, driver setup, usage for UDP and OTG fastboot, and troubleshooting.
+
+---
+
+## Prerequisites
+
+### Windows
+
+Fastboot is available on Windows via `host/tools/fastboot.exe`, but the device's **Fastboot / USB-download** interface must use the **WinUSB** driver.
+
+1. **Prepare connections**
+   - Connect the board's **USB-to-serial** to the PC.
+   - Open **Tera Term** (or any serial console) on the correct COM port/baud.
+
+2. **Enter U-Boot and switch to USB OTG Fastboot**
+   - **Power on** the board and **interrupt autoboot** to get a `U-Boot>` prompt.
+   - Connect the board's **USB OTG** port to the PC.
+   - At the U-Boot prompt, run:
+     ```bash
+     setenv serial# 'Renesas1'
+     fastboot usb 27
+     ```
+     > This places the board into **USB OTG fastboot/download** mode.
+
+3. **Bind WinUSB using Zadig**
+   - Download the latest **[Zadig](https://zadig.akeo.ie/)** and run it (no installation needed).
+   - In Zadig, go to **Options → List All Devices**.
+   - From the dropdown, select the device that represents the bootloader/fastboot interface.
+     - **USB Download Gadget**
+   - On the right, set **Driver** to **WinUSB**.
+   - Click **Install Driver** (or **Replace Driver**).
+
+4. **Verify**
+   - Open **PowerShell** or **Command Prompt** and run:
+     ```powershell
+     .\path\to\package\sd_creator\tools\fastboot.exe devices
+     ```
+
+     Expected:
+     ```
+      Renesas1         fastboot
+     ```
+
+### Linux
+
+```bash
+sudo apt-get update
+sudo apt-get install -y android-tools-fastboot || true
+# Verify the installation
+fastboot --version
+```
+
+Expected output:
+
+```bash
+renesas@builder-pc:~$ fastboot --version
+Android Debug Bridge version <version>
+Version <debian-version>
+Installed as /usr/lib/android-sdk/platform-tools/adb
+Running on Linux <kernel-version> (<architecture>)
+```
+
+---
 
 ## Outline of the folder
 
-```
-├── README.md
-├── sd_flash.py
-└── tools
-    ├── AdbWinApi.dll
-    └── fastboot.exe
-```
-
-## Getting help
-
-Run the following comamnd to know how to use the script
-
-- Windows:
 
 ```
-py sd_flash.py -h
+sd_creator/
+├── tools/
+│   ├── NOTICE.txt
+│   ├── fastboot.exe
+│   ├── AdbWinApi.dll
+│   └── AdbWinUsbApi.dll
+└── sd_flash.py
 ```
 
-- Linux:
+---
 
-```
-python3 sd_flash.py -h
-```
+## Hardware Connections
 
-## Flashing procedure
+| Fastboot Type | Connection to Host | Board Ports Used     | Notes                               |
+|---|---|---|---|
+| **UDP**       | Ethernet cable     | RJ45 + Debug Serial  | Requires IP address and Ethernet port index. |
+| **OTG**       | USB cable          | USB OTG + Debug Serial | No Ethernet/IP required.                 |
 
-Please following below steps:
+> **UDP Fastboot — Single-Port Note**  
+> U-Boot fastboot-udp uses a single active Ethernet MAC per board. If multiple RJ45/PHY ports exist, only one is active (depending on board support). Select the interface via `--ether_port`.
 
-**1. Prepare your own rootfs wic image under `target/images` folder (optional)**
+- `--ether_port` corresponds to the **U-Boot Ethernet device index**.
+
+**UDP port index (required at runtime)**
+
+Specify the Ethernet device index with `--ether_port` when using `--fastboot_type udp`.  
+**Default = `1`** if not provided. Use the board-specific value below for reliable operation:
+
+| Board       | `--ether_port` to use |
+|------------|------------------------|
+| rzg2l-sbc  | 1 |
+| rzv2l-evk  | 0 |
+| rzg2l-evk  | 0 |
+| rzv2h-evk  | 0, 1 |
+
+---
+
+## Usage Help
+
+Run the following comamnd to know how to use the script:
+
+- **Windows**
+  ```powershell
+  py sd_flash.py -h
+  ```
+- **Linux**
+  ```bash
+  python3 sd_flash.py -h
+  ```
+
+---
+
+## Flashing Procedure with `sd_flash.py`
+
+### Step 1 — Prepare the Rootfs Image (wic) (Optional)
 
 ```bash
 mkdir -p /path/to/universal-scripts/target/images/
 cp /path/to/your/wic/file/core-image-weston.wic /path/to/universal-scripts/target/images/
 ```
 
-**2. Hardware connection**
+### Step 2 — Basic Invocation (defaults)
+- **Windows**
+  ```powershell
+  py sd_flash.py
+  ```
+- **Linux**
+  ```bash
+  python3 sd_flash.py
+  ```
 
-- Connect debug serial port to Host PC
-- Hardware connection to each type of fastboot:
-   - [UDP] Connect Ethernet port to Host PC
-   - [OTG] Connect USB OTG port to Host PC
+**Defaults**
+| Parameter | Default |
+|---|---|
+| Board name | `rzg2l-sbc` |
+| Fastboot type | `udp` |
+| Ethernet port | `1` |
+| IP address | `169.254.187.89` |
+| Serial port | latest detected (e.g., `COM8` or `/dev/ttyUSB0`) |
+| Baud rate | `115200` |
+| Rootfs image | `target/images/core-image-weston.wic` |
 
-**3. Run the script**
+### Step 3 — Custom Invocation
 
-*Basic Usage*
+**Common options**
+| Option | Description |
+|---|---|
+| `--board_name` | e.g., `rzg2l-evk`, `rzv2l-evk`, `rzv2h-evk`, `rzg2l-sbc` |
+| `--fastboot_type` | `udp` or `otg` |
+| `--ether_port` | UDP only |
+| `--ip_address` | UDP only |
+| `--serial_port` | COM device (Windows) or `/dev/ttyUSBx` (Linux) |
+| `--serial_port_baud` | Baud rate |
+| `--image_rootfs` | Path to `.wic` |
 
-To run the script without passing any arguments, simply execute the following command:
+**Examples**
 
-- Windows:
+- **Windows**
+  - **UDP flash**
+    ```powershell
+    py sd_flash.py --fastboot_type udp --ip_address 169.254.187.9 --ether_port 0 --serial_port COM11 --serial_port_baud 115200 --image_rootfs D:\custom_images\core-image-weston.wic
+    ```
 
-```
-py sd_flash.py
-```
+  - **OTG flash**
+    ```powershell
+    py sd_flash.py --fastboot_type otg --serial_port COM11 --serial_port_baud 115200 --image_rootfs D:\custom_images\core-image-weston.wic
+    ```
+- **Linux**
+  - **UDP flash**
+    ```bash
+    python3 sd_flash.py --fastboot_type udp --ip_address 169.254.187.9 --ether_port 0 --serial_port /dev/ttyUSB0 --serial_port_baud 115200 --image_rootfs ~/home/custom_images/core-image-weston.wic
+    ```
 
-- Linux:
+  - **OTG flash**
+    ```bash
+    python3 sd_flash.py --fastboot_type otg --serial_port /dev/ttyUSB0 --serial_port_baud 115200 --image_rootfs ~/home/custom_images/core-image-weston.wic
+    ```
 
-```
-python3 sd_flash.py
-```
+> For **OTG**, `--ip_address` and `--ether_port` are not applicable.\
+For **UDP**, choose the correct `--ether_port` for the target board (see the table in Hardware connection).
 
-When no arguments are provided, the script will use the following default info:
-
-- Board name: rzg2l-sbc
-- Fastboot type: udp
-- Ethernet port: 1
-- IP address: 169.254.187.89
-- Serial port: most recently connected port (E.g: COM8 in Windows or /dev/ttyUSB0 in Linux)
-- Serial port baud: 115200
-- WIC file: /path/to/universal-scripts/target/images/core-image-weston.wic
-
-Ensure that these files are present in the current directory before executing the script.
-
-*Custom Usage*
-
-If you want to specify different file paths for the image, you can pass the arguments as shown below:
-
-- **--board_name**: Board name to flash bootloader.
-- **--fastboot_type**: Fastboot type to use (udp or otg).
-- **--ether_port**: [Only used in fastboot UDP] Ethernet port used to board communication.
-- **--ip_address**: [Only used in fastboot UDP] Ethernet IP address used to board communication.
-- **--serial_port**: Serial port to use for communication with the board.
-- **--serial_port_baud**: Baud rate for the serial port.
-- **--image_rootfs**: Path to the root filesystem image.
-
-Example Custom Command
-
-- Windows:
-
-```
-py sd_flash.py --board_name rzg2l-evk --fastboot_type udp --ip_address 169.254.187.9 --ether_port 1 --serial_port COM11 --serial_port_baud 9600 --image_rootfs D:\custom_images\core-image-weston.wic
-```
-
-- Linux:
-
-```
-python3 sd_flash.py --board_name rzg2l-evk --fastboot_type udp --ip_address 169.254.187.9 --ether_port 1 --serial_port /dev/ttyUSB0 --serial_port_baud 9600 --image_rootfs /home/renesas/custom_images/core-image-weston.wic
-```
-
-**4. Power on the board. Please make sure you changed switches to normal boot mode. It will start to flash filesystem image**
-
-Wait for the script running automatically, and no input or operation is required during this period. After finishing, you can boot with the filesystem image that you just flashed.
+### Step 4 — Start Flashing
+1. Configure boot switches for **normal boot** and power on.  
+2. The script initializes fastboot (UDP or OTG) and transfers the image.  
+3. Reboot to start from the newly programmed rootfs.

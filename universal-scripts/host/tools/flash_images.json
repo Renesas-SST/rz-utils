@@ -9,7 +9,7 @@
         "flash_writer": "Flash_Writer_SCIF_rzv2l-evk_PMIC.mot",
         "ipl_flash_method": "xspi",
         "rootfs": "core-image-minimal.wic",
-        "rootfs_flash_method": "udp"
+        "rootfs_flash_method": "otg"
     },
     "rzg2l-evk": {
         "soc": "g2l",
@@ -21,7 +21,7 @@
         "flash_writer": "Flash_Writer_SCIF_rzg2l-evk_PMIC.mot",
         "ipl_flash_method": "xspi",
         "rootfs": "core-image-minimal.wic",
-        "rootfs_flash_method": "udp"
+        "rootfs_flash_method": "otg"
     },
     "rzg2l-sbc": {
         "soc": "g2l",
@@ -45,6 +45,6 @@
         "flash_writer": "Flash_Writer_SCIF_rzv2h-evk.mot",
         "ipl_flash_method": "xspi",
         "rootfs": "core-image-minimal.wic",
-        "rootfs_flash_method": "udp"
+        "rootfs_flash_method": "otg"
     }
 }
