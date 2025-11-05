@@ -47,6 +47,30 @@ FIP = ["1", "100", "00000", "2", "8"]
 BID = ["1", "FA", "810"]
 
 ####################################
+# RS-G2L100 board configurations
+####################################
+
+[rs-g2l100]
+ethernet = ["11c20000", "11c30000"]
+bl2_base = "0x12000"
+fconf_dtb_base = "0x2A000"
+# Uload bootloader
+flash_address = ["00000", "1D200", "1C700"]
+load_address = "0x48000000"
+
+# Bootloader flash SPI
+[rs-g2l100.xspi]
+BL2 = ["11E00", "00000"]
+FIP = ["00000", "1D200"]
+BID = ["00810", "1C700"]
+
+# Bootloader flash eMMC
+[rs-g2l100.emmc]
+BL2 = ["1", "1", "11E00"]
+FIP = ["1", "100", "00000", "2", "8"]
+BID = ["1", "FA", "810"]
+
+####################################
 # RZ/V2L EVK board configurations
 ####################################
 

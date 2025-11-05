@@ -21,8 +21,9 @@ JOBS="${JOBS:-$(nproc)}"
 
 # Map PLATFORM -> "PLAT BOARD"
 declare -A P2B=(
-	["RZG2L-SBC"]="g2l sbc_1"
 	["RZG2L-EVK"]="g2l smarc_pmic_2"
+	["RZG2L-SBC"]="g2l sbc_1"
+	["RS-G2L100"]="g2l rs-g2l100"
 	["RZV2L-EVK"]="v2l smarc_rzv2l"
 	["RZV2H-EVK"]="v2h v2h_evk_1"
 	["RZV2H-RDK"]="v2h v2h_evk_1"
