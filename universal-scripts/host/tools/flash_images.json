@@ -35,6 +35,18 @@
         "rootfs": "core-image-minimal.wic",
         "rootfs_flash_method": "udp"
     },
+    "rs-g2l100": {
+        "soc": "g2l",
+        "bl2": "bl2_bp_rs-g2l100.srec",
+        "board_identification": "rs-g2l100-platform-settings.bin",
+        "fip": "fip_rs-g2l100.srec",
+        "atf_fdts": "rs-g2l100.dtb",
+        "uboot_dtb": "rs-g2l100.dtb",
+        "flash_writer": "Flash_Writer_SCIF_rs-g2l100.mot",
+        "ipl_flash_method": "xspi",
+        "rootfs": "core-image-minimal.wic",
+        "rootfs_flash_method": "otg"
+    },
     "rzv2h-evk": {
         "soc": "v2h",
         "bl2": "bl2_bp_rzv2h-evk.srec",
