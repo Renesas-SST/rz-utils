@@ -31,6 +31,8 @@ Edit the `boards_flash_config.toml` file to include the new board information:
 
 ```toml
 [<board_name>]
+bl2_base = "<bl2_base_address>"
+fconf_dtb_base = "<fconf_dtb_base_address>"
 ethernet = ["<eth0_address>", "eth1_address"]
 flash_address = ["<bl2>", "<fip>", "<board_information>"]
 load_address = "<working_ram>"
@@ -49,6 +51,8 @@ load_address = "<working_ram>"
 Each board has a dedicated section for its specific configuration. The available setting types are as follows:
 
 - **General**:
+  - bl2_base: Base address of the BL2 image in memory. This defines where the BL2 binary is loaded or linked before execution or flashing. The address must align with the memory map of the target board and match the BL2 linker configuration.
+  - fconf_dtb_base: Base address (in-memory) where the FCONF DTB is loaded.
   - ethernet: Specifies the addresses of `ether0` and `ether1` in sequential order.
   - flash_address: The SPI flash address where BL2, FIP, and board information are sequentially stored.
   - load_address: The working RAM address used to load the binary file before writing it to SPI flash.

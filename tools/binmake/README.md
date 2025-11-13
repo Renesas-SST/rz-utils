@@ -11,7 +11,7 @@
 ## Build binmake tool:
 
 ```bash
-git clone https://github.com/Renesas-SST/rz-utils -b main
+git clone https://github.com/Renesas-SST/rz-utils -b styhead/rz-cmn
 cd rz-utils/tools/binmake
 mkdir build
 cd build
@@ -130,12 +130,12 @@ If a board definition contains a "revisions" section in the JSON, you can build 
 ./binmake --input=../platform_info.json --board=rzv2h-evk --output=rzv2h-evk-platform-settings.bin --all-revisions
 ```
 
-This will produce:
+For example, this will produce:
 
 ```
 Built base -> rzv2h-evk-platform-settings.bin
-Built revision 1.20 -> rzv2h-evk-ver1.20-platform-settings.bin
-Built revision 1.21 -> rzv2h-evk-ver1.21-platform-settings.bin
+Built revision 1.0 -> rzv2h-evk-ver1.0-platform-settings.bin
+Built revision 1.1 -> rzv2h-evk-ver1.1-platform-settings.bin
 ```
 
 ## Building a Specific Revision
@@ -143,7 +143,7 @@ Built revision 1.21 -> rzv2h-evk-ver1.21-platform-settings.bin
 To generate a specific revision binary:
 
 ```
-./binmake --input=../platform_info.json --board=rzv2h-evk --output=rzv2h-evk-ver1.21.bin --revision=1.21
+./binmake --input=../platform_info.json --board=rzv2h-evk --output=rzv2h-evk-ver1.0.bin --revision=1.0
 ```
 
 ## Command line Options
