@@ -29,12 +29,15 @@ universal-scripts/
 │       │   └── Readme.md
 │       ├── flash_images.json
 │       ├── README.md
+│       ├── requirements.txt
 │       ├── sd_creator
 │       │   ├── README.md
 │       │   ├── sd_flash.py
 │       │   └── tools
 │       │       ├── AdbWinApi.dll
-│       │       └── fastboot.exe
+│       │       ├── AdbWinUsbApi.dll
+│       │       ├── fastboot.exe
+│       │       └── NOTICE.txt
 │       ├── uload_bootloader
 │       │   ├── README.md
 │       │   └── uload_bootloader_flash.py

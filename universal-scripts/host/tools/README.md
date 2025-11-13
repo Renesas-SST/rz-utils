@@ -258,7 +258,15 @@ Example of a sample board configuration in JSON:
 }
 ```
 
----
+**Note**: When adding a new board entry or adding filename fields for a board, the values for the "bl2" and "fip" fields must include the board identifier (the JSON object key) as a substring.
+
+```
+"rzg2l-sbc": {
+  "bl2": "bl2_bp_rzg2l-sbc.srec",
+  "fip": "fip_rzg2l-sbc.srec",
+  ...
+}
+```
 
 ## Flowchart
 
