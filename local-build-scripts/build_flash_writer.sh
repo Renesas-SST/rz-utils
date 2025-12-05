@@ -23,7 +23,18 @@ declare -A FW_P2B=(
 	["RZV2L-EVK"]="RZV2L_SMARC_PMIC"
 	["RZV2H-EVK"]="RZV2H_DEV"
 	["RZV2H-RDK"]="RZV2H_DEV"
+	["IMDT-V2H-SBC"]="RZV2H_DEV"
 )
+
+# Validate PLATFORM (except RZ-CMN)
+if [[ "${PLATFORM}" != "RZ-CMN" ]]; then
+    if [[ -z "${FW_P2B[$PLATFORM]+set}" ]]; then
+        echo "Error: PLATFORM '$PLATFORM' is not supported by Flash Writer."
+        echo "Supported platforms are:"
+        printf '  %s\n' "${!FW_P2B[@]}"
+        exit 1
+    fi
+fi
 
 sanitize_env() {
 	unset CFLAGS LDFLAGS;
@@ -72,11 +83,12 @@ mk_image() {
 	else
 		local pf="${PLATFORM}"
 		local pf_build_dir="${build_dir}/${pf}"
-		mkdir -p "${pf_build_dir}"
+		mkdir -p "${FLASH_WRITER_DIR}/${pf_build_dir}"
 		echo "==> Building Flash Writer for ${pf}"
 		mk_image_one "${pf}"
 		echo "==> Copying output to ${pf_build_dir}"
-		find "${FLASH_WRITER_DIR}" -maxdepth 1 -name '*.mot' -exec cp {} "${pf_build_dir}/" \;
+		cp ${FLASH_WRITER_DIR}/AArch64_output/* "${FLASH_WRITER_DIR}/${pf_build_dir}/"
+		mk_clean_one "${pf}"
 	fi
 	echo "======================================"
 	echo "Build finished."
@@ -86,11 +98,12 @@ mk_image() {
 }
 
 mk_clean() {
-	rm -rf "${FLASH_WRITER_DIR}/build"
 	if [ "${PLATFORM}" = "RZ-CMN" ]; then
+		rm -rf "${FLASH_WRITER_DIR}/build"/*
 		for pf in "${COMMON_PLATFORMS[@]}"; do mk_clean_one "${pf}"; done
 	else
 		mk_clean_one "${PLATFORM}"
+		rm -rf "${FLASH_WRITER_DIR}/build/${PLATFORM}"
 	fi
 }
 
