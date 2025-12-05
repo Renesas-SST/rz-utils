@@ -141,10 +141,10 @@ FIP = ["00000", "60000"]
 BID = ["00810", "120000"]
 
 ####################################
-# RZ/V2H SBC board configurations
+# IMDT V2H Single Board Computer configurations
 ####################################
 
-[rzv2h-sbc]
+[imdt-v2h-sbc]
 ethernet = ["15c30000", "15c40000"]
 bl2_dest  = "0x08103000"
 bl2_base = "0x8103000"
@@ -155,13 +155,13 @@ flash_address = ["00000", "60000", "120000"]
 load_address = "0x48000000"
 
 # Bootloader flash SPI
-[rzv2h-sbc.xspi]
+[imdt-v2h-sbc.xspi]
 BL2 = ["8101E00", "00000"]
+BID = ["00810", "5F300"]
 FIP = ["00000", "60000"]
-BID = ["00810", "120000"]
 
 # Bootloader flash eMMC
-[rzv2h-sbc.emmc]
+[imdt-v2h-sbc.emmc]
 BL2 = ["1", "1", "8101E00"]
 FIP = ["1", "100", "00000", "2", "8"]
 BID = ["1", "200", "120000", "762", "762"]
