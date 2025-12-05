@@ -71,14 +71,14 @@
         "rootfs": "core-image-minimal.wic",
         "rootfs_flash_method": "udp"
     },
-    "rzv2h-sbc": {
+    "imdt-v2h-sbc": {
         "soc": "v2h",
-        "bl2": "bl2_bp_rzv2h-sbc.srec",
-        "board_identification": "rzv2h-sbc-platform-settings.bin",
-        "fip": "fip_rzv2h-sbc.srec",
-        "atf_fdts": "rzv2h-sbc.dtb",
-        "uboot_dtb": "rzv2h-sbc-ver1.dtb",
-        "flash_writer": "Flash_Writer_SCIF_rzv2h-sbc.mot",
+        "bl2": "bl2_bp_imdt-v2h-sbc.srec",
+        "board_identification": "imdt-v2h-sbc-platform-settings.bin",
+        "fip": "fip_imdt-v2h-sbc.srec",
+        "atf_fdts": "imdt-v2h-sbc.dtb",
+        "uboot_dtb": "imdt-v2h-sbc.dtb",
+        "flash_writer": "Flash_Writer_SCIF_imdt-v2h-sbc.mot",
         "ipl_flash_method": "xspi",
         "rootfs": "core-image-minimal.wic",
         "rootfs_flash_method": "otg"
