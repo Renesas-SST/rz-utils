@@ -32,6 +32,9 @@ if [[ "${PLATFORM}" == "RZ-CMN" ]]; then
 	DEFCONFIG="renesas_defconfig"
 elif [[ -n "${KERN_DEFCONFIG[$PLATFORM]+x}" ]]; then
 	DEFCONFIG="${KERN_DEFCONFIG[$PLATFORM]}"
+else
+    echo "Warning: Platform '${PLATFORM}' not recognised or do not have a specific defconfig. Falling back to common renesas_defconfig."
+    DEFCONFIG="renesas_defconfig"
 fi
 
 echo "Using DEFCONFIG=${DEFCONFIG}"

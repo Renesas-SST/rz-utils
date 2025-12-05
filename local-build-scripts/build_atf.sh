@@ -21,23 +21,21 @@ JOBS="${JOBS:-$(nproc)}"
 
 # Map PLATFORM -> "PLAT BOARD"
 declare -A P2B=(
-	["RZG2L-EVK"]="g2l smarc_pmic_2"
-	["RZG2L-SBC"]="g2l sbc_1"
-	["RS-G2L100"]="g2l rs-g2l100"
-	["RZV2L-EVK"]="v2l smarc_rzv2l"
-	["RZV2H-EVK"]="v2h v2h_evk_1"
-	["RZV2H-RDK"]="v2h v2h_evk_1"
 	["RZ-CMN"]="cmn rz_cmn"
 )
 
 # Resolve PLAT/BOARD for a single PLATFORM
 resolve_board() {
 	local platform="$1"
-	if [[ -z "${P2B[$platform]+set}" ]]; then
-		echo "The platform '$platform' is not supported. Please recheck your setup."
-		exit 1
+	if [[ -n "${P2B[$platform]+set}" ]]; then
+		read -r PLAT BOARD <<<"${P2B[$platform]}"
+	else
+		echo "Warning: Platform '$platform' not recognised or do not have specific board config."
+		echo "         Falling back to RZ Common System BOARD and PLAT."
+		echo "         Note: The common config currently only supports G2L, V2L, and V2H MPUs."
+		PLAT="cmn"
+		BOARD="rz_cmn"
 	fi
-	read -r PLAT BOARD <<<"${P2B[$platform]}"
 	export PLAT BOARD
 }
 

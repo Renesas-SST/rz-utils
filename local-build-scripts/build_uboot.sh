@@ -21,23 +21,12 @@ uboot_setup() {
 	unset LDFLAGS CFLAGS CPPFLAGS
 
 	case ${PLATFORM} in
-		'RZG2L-SBC')
-			UBOOT_DEFCONFIG="rzpi_defconfig"
-			;;
-		'RZG2L-EVK')
-			UBOOT_DEFCONFIG="smarc-rzg2l_defconfig"
-			;;
-		'RZV2L-EVK')
-			UBOOT_DEFCONFIG="smarc-rzv2l_defconfig"
-			;;
-		'RZV2H-EVK')
-			UBOOT_DEFCONFIG="rzv2h-evk-ver1_defconfig"
-			;;
 		'RZ-CMN')
 			UBOOT_DEFCONFIG="rz-cmn_defconfig"
 			;;
 		*)
-			echo "The platform does not support. Please recheck your setup" || exit 1
+			echo "Warning: Platform '${PLATFORM}' not recognised or do not have specific defconfig for this platform. Falling back to 'rz-cmn_defconfig'." >&2
+			UBOOT_DEFCONFIG="rz-cmn_defconfig"
 			;;
 	esac
 }
