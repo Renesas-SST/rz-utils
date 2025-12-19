@@ -26,7 +26,7 @@ A collection of useful tools for RZ platforms.
 
 ### universal-scripts
 
-Scripts for flashing RZ images, compatible with both Windows and Linux OS.
+Scripts for flashing RZ images, compatible with both Windows and Linux.
 
 > [!IMPORTANT]
 > Refer to the README in each folder to understand the usage and configuration specific to scripts and tools.

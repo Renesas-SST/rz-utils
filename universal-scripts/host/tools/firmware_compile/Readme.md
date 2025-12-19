@@ -21,11 +21,13 @@ The script supports multiple boards and flash methods without hardcoding address
 ---
 
 ## Prerequisites
-Make sure you have the following installed or available in `tools/bin/<os>` or `host/tools/bin/<os>`:
+The following tools are required and **already bundled** in `tools/bin/<os>` or `host/tools/bin/<os>`:
 - `bpgen` (unified boot parameter generator)
-- `fiptool`(TF-A utility)
-- `objcopy` (part of GNU binutils)
+- `fiptool` (TF-A utility, includes bundled OpenSSL libraries)
+- `objcopy` (part of GNU binutils, includes bundled MinGW runtime for Windows)
 - Python 3.8+ (Python 3.11+ recommended for built-in TOML parsing)
+
+**No additional installation or PATH configuration required.** All dependencies are included.
 
 Firmware binaries and DTBs must be available in (already included in release package):
 

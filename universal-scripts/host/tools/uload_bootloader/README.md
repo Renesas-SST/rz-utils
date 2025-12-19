@@ -2,6 +2,8 @@
 
 This section describes the ULoad-bootloader flow for programming the bootloader from the U-Boot console. It supports xSPI flashing and is intended for cases where the device can boot to U-Boot and program flash using images stored on the removable media.
 
+> **IMPORTANT:** All steps in this README must be followed in order. The script performs pre-checks to verify files exist on the SD card before erasing the SPI flash. If any required files are missing, the script will abort safely without erasing the flash.
+
 ## Outline of the folder
 
 ```
@@ -14,13 +16,13 @@ uload-bootloader
 
 The release does not include prebuilt ULoad images on the SD card. The ULoad flow requires BL2 and FIP artifacts that are rebuilt for the selected board with the correct DTB/FCONF and configuration.
 
-Run the `firmware_compile.py` in `firmware_compile` folder script to generate these artifacts, then copy them to partition 1 (FAT32) under `/uload-bootloader/` before running the ULoad flasher. This ensures the programmed bootloader matches the exact board and release configuration, minimizing risk of mismatch.
+Run the `firmware_compile.py` script in the `firmware_compile` folder to generate these artifacts, then copy them to partition 1 (FAT32) under `/uload-bootloader/` before running the ULoad flasher. This ensures the programmed bootloader matches the exact board and release configuration, minimizing the risk of mismatch.
 
-To begin with compiling uLoad images, refer to `firmware_compile/Readme.md` for more details.
+To begin compiling uLoad images, refer to `firmware_compile/Readme.md` for more details.
 
 ## Getting help
 
-Run the following comamnd to know how to use the script
+Run the following command to know how to use the script
 
 - Windows:
 
@@ -36,7 +38,7 @@ python3 uload_bootloader_flash.py -h
 
 ## Flashing procedure
 
-Please follow below steps:
+Please follow the steps below:
 
 **1. Prepare necessary images (required)**
 
@@ -86,7 +88,7 @@ When no arguments are provided, the script will use the following default info:
 To specify custom file paths or override the defaults, the following arguments can be passed:
 
 - **--serial_port**: Serial port to use for communication with the board.
-- **--serial_port_baud**: Baud rate for the serial port.
+- **--serial_port_baud**: Baud rate for the serial port (must be `115200`).
 - **--image_bl2**: Path or filename of the BL2 image
 - **--image_fip**: Path or filename of the FIP image
 - **--image_bid**: Path or filename of the board-identification file
@@ -122,4 +124,45 @@ python3 uload_bootloader_flash.py \
 
 **4. Power on the board. It will start to load bootloader images from uboot into xSPI flash**
 
-Wait for the script running automatically, and no input or operation is required during this period. After completing the process, you can set RZ board to boot from xSPI as your needs.
+The script will:
+1. First perform a **pre-check** to verify all required files exist on the SD card
+2. If pre-check passes, proceed to erase and write the SPI flash
+3. If pre-check fails, abort safely without erasing the flash
+
+Wait for the script to run automatically. No input or operation is required during this period. After completing the process, you can set RZ board to boot from xSPI as your needs.
+
+## Troubleshooting
+
+### Pre-check Failed: Missing Files
+
+If you see an error message stating:
+```
+** Pre-check FAILED: Missing or inaccessible files on SD card **
+```
+
+This means one or more required files are not found on the SD card partition 1 (FAT32).
+
+**Solution:**
+1. Verify that you completed **Step 1** (Prepare necessary images) in the "Flashing procedure" section above
+2. Run `firmware_compile.py` to generate the required BL2, FIP, and Board ID files
+3. Copy all generated files to `/uload-bootloader/` directory on SD card partition 1 (FAT32)
+4. Ensure filenames match your board name (e.g., `bl2_bp_rzg2l-sbc.bin` for rzg2l-sbc)
+5. Re-run the script
+
+**Note:** The SPI flash is NOT erased if pre-check fails, so your board remains in a bootable state.
+
+### Serial Communication Issues
+
+If the serial port fails to open or communicate:
+- Verify the serial cable is properly connected to the debug port
+- Check that no other application is using the serial port
+- Confirm the correct port is selected (default: most recent port)
+- Try specifying the port manually with `--serial_port` argument
+
+### Board Does Not Boot to U-Boot Prompt
+
+If the board doesn't reach U-Boot prompt:
+- Verify DIP switches are set to **normal boot mode** (not SCIF download mode)
+- Check that power is properly connected
+- Ensure the board has a valid bootloader already programmed (required for ULoad method)
+- Try power cycling the board

@@ -13,6 +13,7 @@ else:  # pragma: Python version <3.11
 	import tomli as tomllib
 
 DEFAULT_MEDIA_DIR = "uload-bootloader"   # on FAT32 partition
+SEPARATOR_WIDTH = 85  # Width for separator lines in console output
 
 class UloadFlashUtil:
 	def __init__(self, args=None):
@@ -118,6 +119,55 @@ class UloadFlashUtil:
 		self.__writeSerialCmd('true')
 		self.__serialRead('=>')
 
+		# Pre-check: Verify all files exist on SD card before erasing SPI flash
+		print('\n' + '='*SEPARATOR_WIDTH)
+		print('** Pre-check: Verifying all required files on SD card **')
+		print('='*SEPARATOR_WIDTH)
+		
+		files_to_check = [
+			('BL2', bl2_path),
+			('FIP', fip_path),
+			('BID', bid_path)
+		]
+		
+		# Use fatls to list the directory once
+		print(f'\nListing files in {DEFAULT_MEDIA_DIR}/')
+		self.__writeSerialCmd(f'fatls mmc ${{mmcdev}}:${{mmcpart}} {DEFAULT_MEDIA_DIR}/')
+		
+		# Read the directory listing - wait for file(s) indicator then prompt
+		buf = self.__serialPort.read_until(b'file(s)', size=8192)
+		buf += self.__serialPort.read_until(b'=>', size=1024)
+		dir_listing = buf.decode(errors='ignore')
+		print(dir_listing, end='', flush=True)
+		
+		# Check if each file exists in the directory listing
+		all_files_ok = True
+		for file_type, file_path in files_to_check:
+			# Extract just the filename from the path (e.g., "uload-bootloader/bl2_bp_rzg2l-sbc.bin" -> "bl2_bp_rzg2l-sbc.bin")
+			filename = file_path.split('/')[-1]
+			
+			if filename in dir_listing:
+				print(f'  [OK] {file_type}: {filename}')
+			else:
+				print(f'  [MISSING] {file_type}: {filename}')
+				all_files_ok = False
+		
+		if not all_files_ok:
+			print('\n' + '='*SEPARATOR_WIDTH)
+			print('** Pre-check FAILED: Missing or inaccessible files on SD card **')
+			print('='*SEPARATOR_WIDTH)
+			print(f'\nPlease verify that all files exist in {DEFAULT_MEDIA_DIR}/ on SD card partition 1 (FAT32).')
+			print('SPI flash was NOT erased. Board is still in bootable state.')
+			print('\nFor troubleshooting and detailed instructions, refer to:')
+			print('  universal-scripts/host/tools/uload_bootloader/README.md -> Troubleshooting section')
+			self.__serialPort.close()
+			die(msg='Pre-check failed. Aborting flash operation.')
+		
+		print('\n' + '='*SEPARATOR_WIDTH)
+		print('** Pre-check PASSED: All files verified on SD card **')
+		print('='*SEPARATOR_WIDTH)
+		print('\nProceeding with SPI flash erase and write operations...\n')
+
 		# Erase a safe region (adjust size as needed)
 		print('Erasing xSPI: please wait...')
 		start_time_erase = time.time()
@@ -129,7 +179,7 @@ class UloadFlashUtil:
 		self.__serialRead('=>')
 
 		# Loading BL2
-		# ${mmcdev} and ${mmcpart} are U-Boot environment variables.
+		print('\nWriting BL2 to SPI flash...')
 		self.__writeSerialCmd(f'fatload mmc ${{mmcdev}}:${{mmcpart}} {loadAddress} {bl2_path}')
 		self.__serialRead('MiB/s)')
 
@@ -143,7 +193,7 @@ class UloadFlashUtil:
 		self.__serialRead('=>')
 
 		# Loading FIP
-		# ${mmcdev} and ${mmcpart} are U-Boot environment variables.
+		print('\nWriting FIP to SPI flash...')
 		self.__writeSerialCmd(f'fatload mmc ${{mmcdev}}:${{mmcpart}} {loadAddress} {fip_path}')
 		self.__serialRead('MiB/s)')
 
@@ -157,7 +207,7 @@ class UloadFlashUtil:
 		self.__serialRead('=>')
 
 		# Loading Board Identification
-		# ${mmcdev} and ${mmcpart} are U-Boot environment variables.
+		print('\nWriting Board ID to SPI flash...')
 		self.__writeSerialCmd(f'fatload mmc ${{mmcdev}}:${{mmcpart}} {loadAddress} {bid_path}')
 		self.__serialRead('MiB/s)')
 
@@ -170,10 +220,13 @@ class UloadFlashUtil:
 		self.__writeSerialCmd('true')
 		self.__serialRead('=>')
 
+		print('\n' + '='*SEPARATOR_WIDTH)
+		print('** Bootloader flashing completed successfully! **')
+		print('='*SEPARATOR_WIDTH)
 		print("Closed serial port.")
 		self.__serialPort.close()
 
-		print(f"Elapsed time: {time.time() - start_time:.3f} s")
+		print(f"Total elapsed time: {time.time() - start_time:.3f} s")
 
 	def __writeSerialCmd(self, cmd):
 		self.__serialPort.write(f'{cmd}\r'.encode())

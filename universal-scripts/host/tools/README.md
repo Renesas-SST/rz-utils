@@ -1,3 +1,4 @@
+
 # universal-scripts
 
 The **universal flash script** supports flashing RZ images across multiple boards by using information from a JSON configuration file.
@@ -5,15 +6,18 @@ The **universal flash script** supports flashing RZ images across multiple board
 This script offers cross-platform support (for both Windows and Linux operating systems) and handles three key flashing operations for embedded devices:
 
 - Flashing the bootloader
-- Flashing the uload-bootloader (only support xSPI flashing)
+- Flashing the uload-bootloader (only supports xSPI flashing)
 - Flashing the Root Filesystem (rootfs) to an SD card / eMMC
 
 Supported boards:
 
 - [RZG2L-SBC](https://www.renesas.com/en/design-resources/boards-kits/rz-g2l-sbc?srsltid=AfmBOopW7k6H7kvdtnxYYs72c6Pm_8u667-UDBi8v9-WXPHjQvzWlhLN)
 - [RZG2L-EVK](https://www.renesas.com/en/design-resources/boards-kits/rz-g2l-evkit?srsltid=AfmBOoqqLvuA9ZrzAhhRLi9JR1JVUcoc9MUICwtZ78ZER-hchmQ3ps5I)
+- [RS-G2L100](https://www.renesas.com/en/products/microcontrollers-microprocessors/rz-mpus/rz-partner-solutions/geniatech-g2l100)
 - [RZV2L-EVK](https://www.renesas.com/en/design-resources/boards-kits/rz-v2l-evkit?srsltid=AfmBOooz3AGWNCJNed1qk6NS0qeZBngU79XQ4h2KUkmMam82y615JPjr)
 - [RZV2H-EVK](https://www.renesas.com/en/design-resources/boards-kits/rz-v2h-evk?srsltid=AfmBOooL-eoj5j3zum-HIL5v0JE9SROaKosWHYCOHfvySpJ4g39N9R_V)
+- [RZV2H-RDK](Product page not yet available)
+- [IMDT V2H-SBC](https://www.renesas.com/en/products/microcontrollers-microprocessors/rz-mpus/rz-partner-solutions/imdt-v2-sbc)
 
 ## Prerequisites:
 
@@ -21,7 +25,7 @@ Before running the scripts, ensure the following dependencies are installed.
 
 ### Python
 
-- **Windows**: Download and install Python from the [official website](https://www.python.org/downloads/). Make sure Python was installed with the "Add Python to environment variables" and "Install pip" options enabled.
+- **Windows**: Download and install Python from the [official website](https://www.python.org/downloads/). Make sure Python is installed with the "Add Python to environment variables" and "Install pip" options enabled.
 
 - **Linux**:  
   ```sh
@@ -100,7 +104,7 @@ Make sure you have the following installed or available in `tools/bin/<os>` or `
 - `fiptool` - TF-A utility (already included in the release package)
 - `objcopy` - part of GNU binutils (see installation steps above)
 
-Firmware binaries and DTBs must be available in (already included in the release package):
+Firmware binaries and DTBs must be available in the following location (already included in the release package):
 
 ```
 target/images/
@@ -108,11 +112,11 @@ target/images/
 
 #### Linux
 
-Install the required toolchain, OpenSSL headers and fastboot:
+Install the required toolchain and fastboot:
 
 ```sh
 sudo apt-get update
-sudo apt-get install build-essential libssl-dev android-tools-fastboot -y
+sudo apt-get install build-essential android-tools-fastboot -y
 ```
 
 #### Windows
@@ -123,10 +127,7 @@ Fastboot/OTG flashing on Windows requires the device's **Fastboot / USB-download
 
 > **Note:** Windows binds drivers to the **device/interface present at install time** (VID/PID[/MI]). This Fastboot interface exists **only while** the board is connected over OTG **and** go to OTG download mode.
 
-**Applicability**
-
-- **Required** for: **RZ/G2L-EVK**, **RZ/V2L-EVK**, **RZ/V2H-EVK** (when using OTG flashing).
-- **Not applicable** to: **RZ/G2L-SBC** (no OTG port)
+**Steps to verify USB OTG dependencies are installed correctly:**
 
 1. **Prepare connections**
    - Connect the board's USB-to-serial to the PC and open a terminal (115200 8-N-1).
@@ -162,40 +163,14 @@ Fastboot/OTG flashing on Windows requires the device's **Fastboot / USB-download
       Renesas1         fastboot
      ```
 
-**Windows Build Prerequisites (GNU binutils + OpenSSL)**
-
-For Windows builds, both **GNU binutils** and **OpenSSL** are required to generate pre-compiled binaries.
-
-1. GNU Binutils
-- Download and install [MinGW-w64](https://www.mingw-w64.org/).  
-- Add the following path to the Windows **Environment Variables** → **Path**:  
-```
-C:/MinGW/bin
-```
-
-2. OpenSSL (for MinGW-w64)
-- Download the package from: [MinGW-w64 OpenSSL](https://packages.msys2.org/packages/mingw-w64-x86_64-openssl)
-- Extract the package into:
-```
-C:/mingw64
-```
-
-> [!IMPORTANT]  
-> ⚠️ **Important Notice for Windows users**  
-> - Executables such as `fiptool.exe` depend on OpenSSL runtime DLLs.  
->   - Add this directory to your **Environment Variables → Path**:  
->     ```
->     C:/mingw64/bin
->     ```
->   - Or copy the DLLs (`C:\mingw64\bin\libcrypto-3-x64.dll`) into:
->     ```
->     tools/bin/windows/
->     ```
->   - If skipped, running the tools will fail
+> [!NOTE]  
+> **All dependencies bundled for Windows - No Installation Required**  
+> All required tools and runtime libraries are pre-bundled in `tools/bin/windows/`:
+> - `fiptool.exe` + `libcrypto-3-x64.dll` (OpenSSL library)
+> - `bpgen.exe` (statically linked, no DLLs needed)
+> - `objcopy.exe` + `libwinpthread-1.dll` (MinGW runtime)
 >
-> - The `firmware_compile.py` script also depends on `objcopy` (part of GNU binutils).  
->   - Ensure `C:/MinGW/bin` is also in **Windows Environemnt Variables Path** so that `objcopy.exe` can be found.  
->   - Without it, the script will fail during SREC/ELF conversions.
+> **You do NOT need to install MinGW-w64, MSYS2, or OpenSSL.** The scripts automatically use the bundled binaries.
 
 ## JSON Configuration for a New Board
 
@@ -216,12 +191,15 @@ The `flash_images.json` file contains predefined image mappings for supported de
 
 This table below lists the available options (and sensible defaults) for `ipl_flash_method` and `rootfs_flash_method` per board.
 
-| Board        | SoC | `ipl_flash_method` (options) | Default | `rootfs_flash_method` (options) | Default |
-|--------------|-----|------------------------------|---------|----------------------------------|---------|
-| **rzg2l-sbc** | g2l | `xspi`                | `xspi`  | `udp`              | `udp`   |
-| **rzg2l-evk** | g2l | `xspi`, `emmc`        | `xspi`  | `udp`, `otg`       | `otg`   |
-| **rzv2l-evk** | v2l | `xspi`, `emmc`        | `xspi`  | `udp`, `otg`       | `otg`   |
-| **rzv2h-evk** | v2h | `xspi`                | `xspi`  | `udp`, `otg`       | `otg`   |
+| Board           | SoC/MPU | ipl_flash_method      | Default | rootfs_flash_method | Default |
+|-----------------|---------|-----------------------|---------|---------------------|---------|
+| rzg2l-sbc       | g2l     | xspi                  | xspi    | udp                 | udp     |
+| rs-g2l100       | g2l     | xspi                  | xspi    | udp, otg            | otg     |
+| rzg2l-evk       | g2l     | xspi, emmc            | xspi    | udp, otg            | otg     |
+| rzv2l-evk       | v2l     | xspi, emmc            | xspi    | udp, otg            | otg     |
+| rzv2h-evk       | v2h     | xspi                  | xspi    | udp, otg            | otg     |
+| rzv2h-rdk       | v2h     | xspi                  | xspi    | udp                 | udp     |
+| imdt-v2h-sbc    | v2h     | xspi                  | xspi    | udp, otg            | otg     |
 
 **Notes:**
 - *IPL flash method*: `emmc` for `rzv2h-evk` is **not supported yet**.
@@ -271,57 +249,111 @@ Example of a sample board configuration in JSON:
 ## Flowchart
 
 The universal flash script prompts the user for options and proceeds through the flashing process based on the input. The detailed procedure is as follows:
+### Help Menu Flowchart
+
+The following flowchart illustrates the logic when running the help command for the universal flash tool. It shows the user interaction steps and options available:
 
 ```mermaid
 flowchart TD
-    classDef default fill:#f0f4f8,stroke:#333,stroke-width:1px,font-size:14px
-    classDef decision fill:#fef6e4,stroke:#c89b3c,stroke-width:2px,font-weight:bold
-    classDef action fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
-    classDef terminal fill:#d1fae5,stroke:#10b981,stroke-width:2px,font-weight:bold
+  classDef default fill:#f0f4f8,stroke:#333,stroke-width:1px,font-size:14px
+  classDef decision fill:#fef6e4,stroke:#c89b3c,stroke-width:2px,font-weight:bold
+  classDef action fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+  classDef terminal fill:#d1fae5,stroke:#10b981,stroke-width:2px,font-weight:bold
 
-    A((Start)):::terminal --> B[Display available boards]:::action
-    B --> C[User selects board]:::action
-    C --> D[Display available serial ports]:::action
-    D --> E[User selects port and baud rate]:::action
-
-    E --> F{Write RootFS?}:::decision
-    F -->|y| FR[Write RootFS to SD/eMMC]:::action
-    FR --> G{Write IPL?}:::decision
-    F -->|n| G{Write IPL?}:::decision
-
-    G -->|y| H{Select IPL method}:::decision
-    H -->|BootloaderFlash| M[Compile firmware: build BL2 & FIP with per-board DTB at runtime]:::action
-    M --> J[Write IPL by BootloaderFlash]:::action
-    H -->|ULoadFlash| K[Write IPL by ULoadFlash]:::action
-
-    G -->|n| L((End)):::terminal
-    J --> L
-    K --> L
+  H1[Start]:::terminal --> H2[Display Help Menu with options]:::action
+  H2 --> H3{"User selects option 1, 2, or 3"}:::decision
+  H3 -->|1: Installation| H4[Show installation and setup instructions]:::action
+  H4 --> H5[Refer user to README.md for details]:::action
+  H5 --> H6{"Prompt: Run flash tool now?"}:::decision
+  H6 -->|y| H7[Run flash tool]:::action
+  H6 -->|n| H8[Exit]:::terminal
+  H3 -->|2: Run tool| H7[Run flash tool]:::action
+  H3 -->|3: Exit| H8[Exit]:::terminal
 ```
+
+To display this help menu, use the following command:
+
+- **On Linux:**
+  ```bash
+  python3 universal_flash.py --help
+  ```
+
+- **On Windows:**
+  ```powershell
+  py universal_flash.py --help
+  ```
+
+### Installation Flowchart
+This flowchart shows the process when running the universal flash tool directly (without the --help argument). The script will immediately start the flashing workflow:
+
+```mermaid
+flowchart TD
+  classDef default fill:#f0f4f8,stroke:#333,stroke-width:1px,font-size:14px
+  classDef decision fill:#fef6e4,stroke:#c89b3c,stroke-width:2px,font-weight:bold
+  classDef action fill:#dbeafe,stroke:#3b82f6,stroke-width:2px
+  classDef terminal fill:#d1fae5,stroke:#10b981,stroke-width:2px,font-weight:bold
+
+  A[Start]:::terminal --> B[Display available boards]:::action
+  B --> C[User selects board]:::action
+  C --> D[Display available serial ports]:::action
+  D --> E[User selects port]:::action
+
+  E --> G{"Write IPL?"}:::decision
+  G -->|Yes| H{"Select IPL method"}:::decision
+  H -->|BootloaderFlash| M[Compile firmware: build BL2 & FIP with per-board DTB at runtime]:::action
+  M --> J[Write IPL by BootloaderFlash]:::action
+  H -->|ULoadFlash| K[Write IPL by ULoadFlash]:::action
+
+  J --> F{"Write RootFS?"}:::decision
+  K --> F{"Write RootFS?"}:::decision
+  G -->|No| F{"Write RootFS?"}:::decision
+
+  F -->|Yes| FR[Write RootFS to SD/eMMC]:::action
+  FR --> L[End]:::terminal
+  F -->|No| L[End]:::terminal
+```
+
+**Explanation:**
+When you run the script without any arguments, it will skip the help menu and immediately prompt you to select a board and begin the flashing process. You will be guided through board selection, serial port setup, IPL and rootfs flashing steps.
+
+Refer to the [Basic Usage](#basic-usage) section for commands to run the tool.
 
 **Notes:**
 - Ensure the board is powered off before flashing.
 - Insert the SD card if rootfs flashing is selected.
 - For Bootloader-flash: set boot switches to SCIF download mode.
 - For Uload-flash or rootfs flashing: set boot switches to normal mode.
-- Rootfs flash (UDP Fastboot): U-Boot fastboot-udp uses a single active Ethernet MAC per board. If multiple RJ45/PHY ports exist, only one is active (depending on board support). Select the interface via the interactive menu in universal_flash (when Rootfs flash is selected).
+- **Board Reset/Power-cycle:**
+  - **RZ/G2L-SBC**: Does not have a RESET button. You must power-cycle by unplugging and re-plugging the power adapter. Since the debug/OTG USB port is powered from the same power jack, the USB device will disconnect and the serial port will disappear from the host PC during power-cycle. Ensure you reconnect the USB cable to the same PC port after power-cycle to avoid reconnection issues.
+  - **RZ/G2L-EVK, RZ/V2L-EVK boards**: Use the RESET button to reset the board without removing power. The USB connection and serial port remain available during flashing.
+  - **RS-G2L100**: Does not have a RESET button. You must power-cycle by unplugging and re-plugging the power adapter. Since the debug/OTG USB port is powered from the same power jack, the USB device will disconnect and the serial port will disappear from the host PC during power-cycle. Ensure you reconnect the USB cable to the same PC port after power-cycle to avoid reconnection issues.
+  - **RZ/V2H-EVK**: Use the RESET button to reset the board without removing power. The USB connection and serial port remain available during flashing.
+  - **RZ/V2H-RDK board**: Does not have a RESET button. You must power-cycle by unplugging and re-plugging the power adapter. Since the debug/OTG USB port is powered from the same power jack, the USB device will disconnect and the serial port will disappear from the host PC during power-cycle. Ensure you reconnect the USB cable to the same PC port after power-cycle to avoid reconnection issues.
+  - **IMDT V2H-SBC**: Use the RESET button to reset the board without removing power. The USB connection and serial port remain available during flashing.
+- Rootfs flash (UDP Fastboot): U-Boot fastboot-udp uses a single active Ethernet MAC per board. If multiple RJ45/PHY ports exist, only one is active (depending on board support). The script automatically selects the appropriate Ethernet port based on board configuration in `boards_flash_config.toml`. For boards with multiple available ports, the script will prompt you to select which port to use.
 
-  | Board       | Ethernet port to use |
-  |------------|------------------------|
-  | rzg2l-sbc  | 1 |
-  | rzv2l-evk  | 0 |
-  | rzg2l-evk  | 0 |
-  | rzv2h-evk  | 0, 1 |
+  | Board         | Ethernet port(s) used |
+  |-------------|----------------------|
+  | rzg2l-sbc    | 1                    |
+  | rs-g2l100    | 0, 1                 |
+  | rzv2l-evk    | 0                    |
+  | rzg2l-evk    | 0                    |
+  | rzv2h-evk    | 0, 1                 |
+  | rzv2h-rdk    | 0                    |
+  | imdt-v2h-sbc | 0, 1                 |
 
 Both fastboot-otg and fastboot-udp write to U-Boot's current MMC device (typically mmc0). Depending on board and revision, mmc0 may point to the SD card or eMMC.
 
-| Board / Rev                                | Fastboot Method | Typical mmc0 target                                                     | How to change target                                           |
-|--------------------------------------------|-----------------|-------------------------------------------------------------------------|----------------------------------------------------------------|
-| rzg2l-sbc                                  | UDP             | Carrier SD (board default)                                              | N/A (single device)                                            |
-| rzv2l-evk                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)                        | Set SW1-2 ON to SD and OFF to eMMC                             |
-| rzg2l-evk                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)                        | Set SW1-2 ON to SD and OFF to eMMC                             |
-| rzv2h-evk (rev 1: 2 SD cards)              | UDP, OTG        | SD card slot 0                                                          | N/A (single device)                                            |
-| rzv2h-evk (rev 2: 1 SD & 1 eMMC)           | UDP, OTG        | eMMC                                                                    | N/A (single device)                                            |
+| Board/Rev                                   | Fastboot Method | Typical mmc0 target                                  | How to change target           |
+|---------------------------------------------|-----------------|------------------------------------------------------|-------------------------------|
+| RZ/G2L-SBC                                  | UDP             | Carrier SD (board default)                            | N/A (single device)           |
+| RS-G2L100                                   | UDP, OTG        | eMMC                                                | N/A (single device)           |
+| RZ/V2L-EVK                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)      | Set SW1-2 ON to SD and OFF to eMMC |
+| RZ/G2L-EVK                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)      | Set SW1-2 ON to SD and OFF to eMMC |
+| RZ/V2H-EVK (Rev 1 – 2 SD cards)             | UDP, OTG        | SD card slot 0                                       | N/A (single device)           |
+| RZ/V2H-EVK (Rev 2 – SD & eMMC)              | UDP, OTG        | eMMC                                                | N/A (single device)           |
+| RZ/V2H-RDK                                  | UDP             | SD card                                             | N/A (single device)           |
+| IMDT V2H-SBC                                | UDP, OTG        | eMMC                                                | N/A (single device)           |
 
 ---
 
@@ -349,10 +381,10 @@ This script is used to flash the initial bootloader image onto the board via a s
 
 Location:
 ```
-host/tools/bootloader_flasherr/
+host/tools/bootloader_flasher/
 ```
 
-Refer to the `Readme.md` file in that folder for detail instructions.
+Refer to the `Readme.md` file in that folder for detailed instructions.
 
 #### Flash Bootloader from U-Boot Console
 
@@ -363,7 +395,7 @@ Location
 host/tools/uload_bootloader/
 ```
 
-Refer to the `Readme.md` file in that folder for detail instructions.
+Refer to the `Readme.md` file in that folder for detailed instructions.
 
 #### Flash Root Filesystem to microSD Card
 
@@ -374,4 +406,4 @@ Location
 host/tools/sd_creator/
 ```
 
-Refer to the `Readme.md` file in that folder for detail instructions.
+Refer to the `Readme.md` file in that folder for detailed instructions.

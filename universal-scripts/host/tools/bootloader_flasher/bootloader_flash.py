@@ -13,6 +13,9 @@ if sys.version_info >= (3, 11):  # pragma: Python version >=3.11
 else:  # pragma: Python version <3.11
     import tomli as tomllib
 
+# Constants
+MESSAGE_WIDTH = 85
+
 class BootloaderFlashUtil:
 	def __init__(self, args=[]):
 		self.__scriptDir = os.path.dirname(os.path.abspath(__file__))
@@ -179,6 +182,7 @@ class BootloaderFlashUtil:
 		time2 = time.time()
 		elapsed_time = time2 - time1
 		print(f"Elapsed time: Flash Writer: {elapsed_time:.6f} seconds")
+		print("Flash Writer has finished successfully.\n")
 
 		self.__writeSerialCmd('')
 		self.__serialRead('>')
@@ -228,6 +232,7 @@ class BootloaderFlashUtil:
 		print("Writing BL2...")
 		self.__writeFileToSerial(self.__args.bl2Image)
 		self.__serialRead('>')
+		print("BL2 write complete.\n")
 
 		# Write FIP
 		FIPFlashAddress = flashAddress["FIP"]
@@ -241,10 +246,11 @@ class BootloaderFlashUtil:
 		self.__serialRead('Please Input Program Start Address')
 		self.__writeSerialCmd(FIPFlashAddress[2])
 		self.__serialRead('please send !')
-		print("Writing fip ...")
+		print("Writing FIP...")
 		self.__writeFileToSerial(self.__args.fipImage)
 
 		self.__serialRead('EM_W Complete!')
+		print("FIP write completed.\n")
 
 		# Write EXT_CSD
 		self.__writeSerialCmd('EM_SECSD')
@@ -277,11 +283,24 @@ class BootloaderFlashUtil:
 		print("Writing board identification...")
 		self.__writeFileToSerial(self.__args.bidImage)
 		self.__serialRead('>')
+		print("Board identification write completed.\n")
 
 	def __handle_xspi_flash(self, flashAddress):
 		if not (self.__args.boardName == "rzv2h-evk") and not (self.__args.boardName == "rzv2h-rdk"):
+			print("\n" + "="*MESSAGE_WIDTH)
+			print("** ERASING QSPI FLASH MEMORY **")
+			print("="*MESSAGE_WIDTH)
+			print("This operation will erase the SpiFlash memory.")
+			print("Please wait, this may take up to 60 seconds...")
+			print("The terminal will appear to freeze during this time - this is normal.")
+			print("="*MESSAGE_WIDTH + "\n")
+			
 			self.__writeSerialCmd('XCS')
 			self.__wait_for_prompt(60)
+			
+			print("\n" + "="*MESSAGE_WIDTH)
+			print("QSPI flash erase complete!")
+			print("="*MESSAGE_WIDTH + "\n")
 
 		# Changing speed to 921600 bps.
 		self.__writeSerialCmd('SUP')
@@ -305,6 +324,7 @@ class BootloaderFlashUtil:
 		print("Writing BL2...")
 		self.__writeFileToSerial(self.__args.bl2Image)
 		self.__serialRead('>')
+		print("BL2 write completed.\n")
 
 		# Write FIP
 		FIPFlashAddress = flashAddress["FIP"]
@@ -316,9 +336,10 @@ class BootloaderFlashUtil:
 		self.__writeSerialCmd(FIPFlashAddress[1])
 		self.__serialRead('please send !')
 
-		print("Writing fip ...")
+		print("Writing FIP...")
 		self.__writeFileToSerial(self.__args.fipImage)
 		self.__wait_for_prompt()
+		print("FIP write completed.\n")
 
 		# Write board identification
 		BIDFlashAddress = flashAddress["BID"]
@@ -336,6 +357,7 @@ class BootloaderFlashUtil:
 		print("Writing board identification...")
 		self.__writeFileToSerial(self.__args.bidImage)
 		self.__wait_for_prompt()
+		print("Board identification write completed.\n")
 
 	def __writeSerialCmd(self, cmd):
 		self.__serialPort.write(f'{cmd}\r'.encode())
