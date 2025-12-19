@@ -11,6 +11,7 @@ All the scripts uses a `boards_flash_config.toml` file to define flash layout an
 ```toml
 [rzg2l-sbc]
 ethernet = ["11c20000", "11c30000"]
+ethernet_udp_index = 1
 flash_address = ["00000", "1D200", "1C700"]
 load_address = "0x48000000"
 
@@ -34,6 +35,7 @@ Edit the `boards_flash_config.toml` file to include the new board information:
 bl2_base = "<bl2_base_address>"
 fconf_dtb_base = "<fconf_dtb_base_address>"
 ethernet = ["<eth0_address>", "eth1_address"]
+ethernet_udp_index = <port_index_or_list>
 flash_address = ["<bl2>", "<fip>", "<board_information>"]
 load_address = "<working_ram>"
 
@@ -49,11 +51,11 @@ load_address = "<working_ram>"
 ```
 
 Each board has a dedicated section for its specific configuration. The available setting types are as follows:
-
 - **General**:
   - bl2_base: Base address of the BL2 image in memory. This defines where the BL2 binary is loaded or linked before execution or flashing. The address must align with the memory map of the target board and match the BL2 linker configuration.
   - fconf_dtb_base: Base address (in-memory) where the FCONF DTB is loaded.
   - ethernet: Specifies the addresses of `ether0` and `ether1` in sequential order.
+  - ethernet_udp_index: Specifies which Ethernet port(s) to use for UDP fastboot flashing. Can be a single integer (e.g., `0` or `1`) or a list of integers (e.g., `["0", "1"]`) if multiple ports are available. The universal flash script will automatically use this value without prompting the user.
   - flash_address: The SPI flash address where BL2, FIP, and board information are sequentially stored.
   - load_address: The working RAM address used to load the binary file before writing it to SPI flash.
 

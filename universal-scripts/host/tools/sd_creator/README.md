@@ -10,6 +10,8 @@ This document introduces the comprehensive instructions for flashing a root file
 
 Fastboot is available on Windows via `host/tools/fastboot.exe`, but the device's **Fastboot / USB-download** interface must use the **WinUSB** driver.
 
+**Steps to verify USB OTG dependencies are installed correctly:**
+
 1. **Prepare connections**
    - Connect the board's **USB-to-serial** to the PC.
    - Open **Tera Term** (or any serial console) on the correct COM port/baud.
@@ -74,7 +76,8 @@ sd_creator/
 │   ├── fastboot.exe
 │   ├── AdbWinApi.dll
 │   └── AdbWinUsbApi.dll
-└── sd_flash.py
+├── sd_flash.py
+└── README.md
 ```
 
 ---
@@ -99,27 +102,41 @@ Specify the Ethernet device index with `--ether_port` when using `--fastboot_typ
 | Board       | `--ether_port` to use |
 |------------|------------------------|
 | rzg2l-sbc  | 1 |
+| rs-g2l100  | 0, 1 |
 | rzv2l-evk  | 0 |
 | rzg2l-evk  | 0 |
 | rzv2h-evk  | 0, 1 |
+| rzv2h-rdk  | 0 |
+| imdt-v2h-sbc  | 0, 1 |
+
+> **Note for rzv2h-rdk board:**
+> 
+> The RZ/V2H-RDK board does not have a RESET button. To reset the board, you must power-cycle by unplugging and re-plugging the power adapter. Since the debug/OTG USB port and the board's main power are supplied through the same power jack, the USB device will disconnect during power-cycle, and the serial port will disappear from the host PC.
+> 
+> In contrast, RZ/{G,V}2L-EVK boards provide a RESET button, which allows you to reset the board without removing power, so the USB connection and serial port remain available during flashing.
+> 
+> When performing a power-cycle on RZ/V2H-RDK, make sure not to change the USB port or cable on your PC, and always reconnect both the power and USB exactly as before to avoid reconnection issues during flashing or debugging.
 
 **Fastboot MMC Target**
 
 Both fastboot-otg and fastboot-udp write to U-Boot's current MMC device (typically mmc0). Depending on board and revision, mmc0 may point to the SD card or eMMC.
 
-| Board / Rev                                | Fastboot Method | Typical mmc0 target                                                     | How to change target                                           |
-|--------------------------------------------|-----------------|-------------------------------------------------------------------------|----------------------------------------------------------------|
-| rzg2l-sbc                                  | UDP             | Carrier SD (board default)                                              | N/A (single device)                                            |
-| rzv2l-evk                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)                        | Set SW1-2 ON to SD and OFF to eMMC                             |
-| rzg2l-evk                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)                        | Set SW1-2 ON to SD and OFF to eMMC                             |
-| rzv2h-evk (rev 1: 2 SD cards)              | UDP, OTG        | SD card slot 0                                                          | N/A (single device)                                            |
-| rzv2h-evk (rev 2: 1 SD & 1 eMMC)           | UDP, OTG        | eMMC                                                                    | N/A (single device)                                            |
+| Board/Rev                                   | Fastboot Method | Typical mmc0 target                                  | How to change target           |
+|---------------------------------------------|-----------------|------------------------------------------------------|-------------------------------|
+| RZ/G2L-SBC                                  | UDP             | Carrier SD (board default)                            | N/A (single device)           |
+| RS-G2L100                                   | UDP, OTG        | eMMC                                                | N/A (single device)           |
+| RZ/V2L-EVK                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)      | Set SW1-2 ON to SD and OFF to eMMC |
+| RZ/G2L-EVK                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)      | Set SW1-2 ON to SD and OFF to eMMC |
+| RZ/V2H-EVK (Rev 1 – 2 SD cards)             | UDP, OTG        | SD card slot 0                                       | N/A (single device)           |
+| RZ/V2H-EVK (Rev 2 – SD & eMMC)              | UDP, OTG        | eMMC                                                | N/A (single device)           |
+| RZ/V2H-RDK                                  | UDP             | SD card                                             | N/A (single device)           |
+| IMDT V2H-SBC                                | UDP, OTG        | eMMC                                                | N/A (single device)           |
 
 ---
 
 ## Usage Help
 
-Run the following comamnd to know how to use the script:
+Run the following command to know how to use the script:
 
 - **Windows**
   ```powershell
@@ -172,7 +189,7 @@ cp /path/to/your/wic/file/core-image-weston.wic /path/to/universal-scripts/targe
 | `--ether_port` | UDP only |
 | `--ip_address` | UDP only |
 | `--serial_port` | COM device (Windows) or `/dev/ttyUSBx` (Linux) |
-| `--serial_port_baud` | Baud rate |
+| `--serial_port_baud` | Baud rate (must be `115200`) |
 | `--image_rootfs` | Path to `.wic` |
 
 **Examples**

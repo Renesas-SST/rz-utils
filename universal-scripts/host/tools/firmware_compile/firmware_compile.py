@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-firmware_build.py — Build BL2(+ATF-FDTs), Boot Parameter (bpgen), U-Boot(+DTBs), and FIP artifacts.
+firmware_compile.py — Build BL2(+ATF-FDTs), Boot Parameter (bpgen), U-Boot(+DTBs), and FIP artifacts.
 
 Pipeline:
 1) BL2+ATF-FDTs -> bl2_<board>.bin
@@ -225,7 +225,9 @@ class FirmwareBuilder:
 	def make_bl2_padded(self):
 		"""Pads the BL2 binary with null bytes to reach the DTB limit."""
 		if not self.bl2.exists():
-			raise FileNotFoundError(f"Input BL2 file not found at {self.bl2}")
+			print(f"ERROR: BL2 file not found at {self.bl2}")
+			print(f"Please ensure the BL2 binary is available before running this script.")
+			sys.exit(1)
 
 		bl2_size = self.bl2.stat().st_size
 		padding = self.bl2_padded_limit - bl2_size
