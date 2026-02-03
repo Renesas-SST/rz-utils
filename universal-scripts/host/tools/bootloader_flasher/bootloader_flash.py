@@ -162,7 +162,7 @@ class BootloaderFlashUtil:
 		# Wait for device to be ready to receive image.
 		print("Please power on the board and ensure the DIP switches are set to SCIF Download Mode. Press RESET if available (on EVK boards); otherwise, power-cycle (e.g., toggle the POWER switch or unplug/replug power).")
 
-		if (self.__args.boardName == "rzv2h-evk"):
+		if (self.__args.boardName == "rzv2h-evk" or self.__args.boardName == "imdt-v2h-sbc"):
 			self.__serialRead('Load Program to SRAM')
 		elif (self.__args.boardName == "rzv2h-rdk"):
 			print("No need to check input for RZV2H-RDK.")
