@@ -21,7 +21,7 @@ DEFAULT_FASTBOOT_SERIAL = "Renesas_RZ_CMN"
 
 
 # Constants
-SERIAL_RECONNECT_TIMEOUT = 10
+SERIAL_RECONNECT_TIMEOUT = 30
 SERIAL_RECONNECT_CHECK_INTERVAL = 0.1
 SERIAL_READ_TIMEOUT = 10
 SERIAL_READ_BUFFER_SIZE = 4096
@@ -38,6 +38,7 @@ class SdFlashUtil:
 		self.__rootDir = os.path.abspath(os.path.join(self.__scriptDir, '..', '..', '..'))
 		self.__imagesDir = os.path.abspath(os.path.join(self.__rootDir, 'target', 'images'))
 		self.__fastbootDevice = DEFAULT_FASTBOOT_SERIAL
+		self.__oldPort = None
 
 		if platform.system() == "Windows":
 			self.__fastboot = os.path.abspath(os.path.join(self.__scriptDir, 'tools', 'fastboot.exe'))
@@ -102,11 +103,11 @@ class SdFlashUtil:
 
 		# Images
 		self.__parser.add_argument('--image_rootfs',
-									default=f'{self.__imagesDir}/core-image-qt-rzg2l-sbc.wic',
+									default=f'{self.__imagesDir}/core-image-minimal.wic',
 									dest='rootfsImage',
 									action='store',
 									type=str,
-									help='Path to rootfs (defaults to: <path/to/your/package>/target/images/core-image-qt-rzg2l-sbc.wic).')
+									help='Path to rootfs (defaults to: <path/to/your/package>/target/images/core-image-minimal.wic).')
 
 		if args:
 			self.__args = self.__parser.parse_args(args)
@@ -118,7 +119,7 @@ class SdFlashUtil:
 		try:
 			# Store the by-id path if provided
 			self.__serialPortById = getattr(self.__args, 'serialPortById', None)
-			
+
 			if (self.__args.serialPort is None):
 				ports = [port.device for port in comports()]
 				print(f"Available serial ports: {ports}")
@@ -128,7 +129,10 @@ class SdFlashUtil:
 			else:
 				self.__serialPortPath = self.__args.serialPort
 				self.__serialPort = serial.Serial(port=self.__args.serialPort, baudrate=self.__args.baudRate, timeout=15)
-			
+
+			# Store old port session
+			self.__oldPort = self.__serialPortPath
+
 			# If no by-id path provided, try to resolve it
 			if not self.__serialPortById:
 				self.__serialPortById = self._get_by_id_path(self.__serialPortPath)
@@ -140,9 +144,9 @@ class SdFlashUtil:
 		"""Get the /dev/serial/by-id/ path for a given tty device."""
 		if not os.path.exists(SERIAL_BY_ID_DIR):
 			return tty_device
-		
+
 		device_name = os.path.basename(tty_device)
-		
+
 		try:
 			for by_id_link in glob.glob(os.path.join(SERIAL_BY_ID_DIR, "*")):
 				real_path = os.path.realpath(by_id_link)
@@ -150,12 +154,11 @@ class SdFlashUtil:
 					return by_id_link
 		except Exception as e:
 			print(f"Warning: Could not resolve by-id path: {e}")
-		
+
 		return tty_device
 
 	def _wait_for_serial_reconnect(self, timeout: int = SERIAL_RECONNECT_TIMEOUT) -> bool:
 		"""Wait for serial port to reconnect after power cycle."""
-		# Removed reconnection status print statements as requested
 
 		start_time = time.time()
 		last_print_time = 0
@@ -163,25 +166,21 @@ class SdFlashUtil:
 		while (time.time() - start_time) < timeout:
 			elapsed = time.time() - start_time
 			remaining = int(timeout - elapsed)
-			
+
 			# Update status display every second
 			if elapsed - last_print_time >= 1.0:
 				print(f"\rWaiting for device reconnection... {remaining}s remaining  ", end="", flush=True)
 				last_print_time = elapsed
 
-			# Check if device appeared - prioritize by-id path
-			target_port = None
-			if self.__serialPortById and os.path.exists(self.__serialPortById):
-				target_port = os.path.realpath(self.__serialPortById)
-			elif os.path.exists(self.__serialPortPath):
-				target_port = self.__serialPortPath
-			
+			# Check if device appeared
+			target_port = self.__oldPort
+
 			if target_port:
 				# Try to open the port to verify it's ready
 				try:
 					test_port = serial.Serial(port=target_port, baudrate=self.__args.baudRate, timeout=1)
 					test_port.close()
-					
+
 					print(f"\n\nDevice detected: {target_port}")
 					self.__serialPortPath = target_port
 					return True
@@ -208,7 +207,7 @@ class SdFlashUtil:
 		# Wait for device to reappear
 		if not self._wait_for_serial_reconnect():
 			return False
-		
+
 		try:
 			# Reopen the port for normal communication
 			self.__serialPort = serial.Serial(
@@ -216,14 +215,14 @@ class SdFlashUtil:
 				baudrate=self.__args.baudRate,
 				timeout=15
 			)
-			
+
 			# Clear any buffered data
 			time.sleep(BUFFER_CLEAR_WAIT)
 			if self.__serialPort.in_waiting > 0:
 				self.__serialPort.read(self.__serialPort.in_waiting)
-			
+
 			return True
-			
+
 		except Exception as e:
 			print(f"Failed to reconnect to serial port: {e}")
 			return False
@@ -279,23 +278,24 @@ class SdFlashUtil:
 			exit()
 
 		# Wait for device to be ready to receive image.
-		print("Please power on the board and ensure the DIP switches are set to normal boot mode. Press RESET if available (on EVK boards); otherwise, power-cycle (e.g., toggle the POWER switch or unplug/replug power).")
+		print("\nPlease power off the board, set the DIP switches to the normal boot mode, and then power the board back on!")
 		print(f"\n{'='*SEPARATOR_WIDTH}")
-		print("** IMPORTANT: Do not change the USB port or cable compared to the initial setup. **")
+		print("** IMPORTANT: Do not change the Serial port and the Ethernet, or the USB compared to the initial setup. **")
 		print(f"{'='*SEPARATOR_WIDTH}\n")
+
 		# Try to read from serial with reconnection support
 		if not self.__serialReadWithReconnect('Hit any key to stop autoboot:', allow_uboot_prompt=True):
 			die(msg='Failed to communicate with board after reconnection attempts.')
-		
+
 		# Send enter to get fresh prompt (in case we're already at prompt)
 		self.__writeSerialCmd('')
 		time.sleep(BUFFER_CHECK_WAIT)
-		
+
 		# Clear any buffered data and verify we have prompt
 		if self.__serialPort.in_waiting > 0:
 			data = self.__serialPort.read(self.__serialPort.in_waiting).decode(errors='ignore')
 			print(data, end='', flush=True)
-		
+
 		# Send another enter to get prompt
 		self.__writeSerialCmd('')
 		self.__serialRead('=>')
@@ -322,7 +322,7 @@ class SdFlashUtil:
 		self.__writeSerialCmd(f'setenv ethact ethernet@{self.__etherAddress[self.__args.etherPort]}')
 		self.__writeSerialCmd('fastboot udp')
 		self.__serialRead('Listening for fastboot command on')
-		
+
 		# Give time for UDP fastboot to fully initialize
 		print('Waiting for fastboot UDP service to initialize...')
 		# time.sleep(5)
@@ -369,7 +369,7 @@ class SdFlashUtil:
 
 	def __serialReadWithReconnect(self, cond='\n', max_retries=MAX_RECONNECT_RETRIES, allow_uboot_prompt=False) -> bool:
 		"""Read from serial with automatic reconnection on failure.
-		
+
 		Args:
 			cond: The condition string to wait for
 			max_retries: Maximum number of retry attempts
@@ -387,7 +387,7 @@ class SdFlashUtil:
 					# Check if we already have what we're looking for
 					if cond in existing_data or (allow_uboot_prompt and '=>' in existing_data):
 						return True
-				
+
 				# If not in buffer, wait for it with timeout
 				self.__serialPort.timeout = SERIAL_READ_TIMEOUT
 				buf = self.__serialPort.read_until(cond.encode(), size=SERIAL_READ_BUFFER_SIZE)
@@ -395,11 +395,11 @@ class SdFlashUtil:
 				if buf:
 					decoded = buf.decode(errors="ignore")
 					print(decoded, end='', flush=True)
-					
+
 					# Check if we got what we expected
 					if cond in decoded or (allow_uboot_prompt and '=>' in decoded):
 						return True
-					
+
 				# Need reconnection
 				if attempt < max_retries - 1:
 					if self._reconnect_serial():
@@ -407,7 +407,7 @@ class SdFlashUtil:
 							# After reconnect, just return success - we'll verify prompt in writeRootfs
 							return True
 						continue
-				
+
 				return False
 
 			except serial.SerialException as e:
@@ -427,7 +427,7 @@ class SdFlashUtil:
 							return True
 						continue
 				return False
-		
+
 		print(f"Failed to communicate with board after {max_retries} attempts.")
 		return False
 
@@ -436,7 +436,7 @@ class SdFlashUtil:
 		buf = self.__serialPort.read_until(cond.encode())
 
 		if not buf:
-			print("Returned value is not the expectation. Exiting.")
+			print("Returned value is not the expectation. Expecting: {}.\n Exiting!".format(cond))
 			exit()
 
 		print(f'{buf.decode(errors="ignore")}')
