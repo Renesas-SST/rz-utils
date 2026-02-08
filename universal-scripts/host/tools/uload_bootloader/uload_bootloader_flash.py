@@ -15,6 +15,7 @@ else:  # pragma: Python version <3.11
 
 DEFAULT_MEDIA_DIR = "uload-bootloader"   # on FAT32 partition
 SEPARATOR_WIDTH = 85  # Width for separator lines in console output
+WAIT_POWER_TIMEOUT = 120
 SERIAL_RECONNECT_TIMEOUT = 30
 SERIAL_RECONNECT_CHECK_INTERVAL = 0.1
 SERIAL_READ_TIMEOUT = 10
@@ -349,63 +350,69 @@ class UloadFlashUtil:
 
 	def __serialReadWithReconnect(self, cond='\n', max_retries=MAX_RECONNECT_RETRIES, allow_uboot_prompt=False) -> bool:
 		"""Read from serial with automatic reconnection on failure.
-
 		Args:
 			cond: The condition string to wait for
 			max_retries: Maximum number of retry attempts
 			allow_uboot_prompt: If True, also accept U-Boot prompt (=>) as success condition
 		"""
-
 		for attempt in range(max_retries):
 			try:
-				# First check if there's already data in buffer
-				time.sleep(BUFFER_CHECK_WAIT)
+				# Clear any existing buffer data
+				discarded = None
 				if self.__serialPort.in_waiting > 0:
-					existing_data = self.__serialPort.read(self.__serialPort.in_waiting).decode(errors='ignore')
-					print(existing_data, end='', flush=True)
+					discarded = self.__serialPort.read(self.__serialPort.in_waiting)
 
-					# Check if we already have what we're looking for
-					if cond in existing_data or (allow_uboot_prompt and '=>' in existing_data):
-						return True
+				# If we discarded data, wait for board to power cycle and come back
+				if discarded:
+					print("Waiting for board to power cycle...", flush=True)
+					boot_timeout = WAIT_POWER_TIMEOUT
+					boot_start = time.time()
+					while time.time() - boot_start < boot_timeout:
+						if self.__serialPort.in_waiting > 0:
+							break
+						time.sleep(0.2)
+					else:
+						print("Timeout waiting for power on", flush=True)
+						return False
 
-				# If not in buffer, wait for it with timeout
-				self.__serialPort.timeout = SERIAL_READ_TIMEOUT
-				buf = self.__serialPort.read_until(cond.encode(), size=SERIAL_READ_BUFFER_SIZE)
+				# Wait for the expected prompt
+				prompt_timeout = WAIT_POWER_TIMEOUT
+				prompt_start = time.time()
+				accumulated_data = ""
 
-				if buf:
-					decoded = buf.decode(errors="ignore")
-					print(decoded, end='', flush=True)
-
-					# Check if we got what we expected
-					if cond in decoded or (allow_uboot_prompt and '=>' in decoded):
-						return True
-
-				# Need reconnection
-				if attempt < max_retries - 1:
-					if self._reconnect_serial():
-						if allow_uboot_prompt:
-							# After reconnect, just return success - we'll verify prompt in writeRootfs
+				while time.time() - prompt_start < prompt_timeout:
+					if self.__serialPort.in_waiting > 0:
+						new_data = self.__serialPort.read(self.__serialPort.in_waiting).decode(errors='ignore')
+						print(new_data, end='', flush=True)
+						accumulated_data += new_data
+						
+						if cond in accumulated_data or (allow_uboot_prompt and '=>' in accumulated_data):
 							return True
-						continue
 
+					time.sleep(0.1)
+
+				# Timeout reached without seeing the expected prompt
+				print(f"Timeout waiting for prompt '{cond}'", flush=True)
 				return False
 
 			except serial.SerialException as e:
-				# Removed serial error print as requested
 				if attempt < max_retries - 1:
-					# Removed reconnection attempt print as requested
 					if self._reconnect_serial():
 						if allow_uboot_prompt:
 							return True
 						continue
+
+				print(f"Serial exception: {e}", flush=True)
 				return False
+
 			except Exception as e:
-				print(f"Unexpected error: {type(e).__name__}: {e}")
 				if attempt < max_retries - 1:
 					if self._reconnect_serial():
 						if allow_uboot_prompt:
 							return True
 						continue
+
+				print(f"Unexpected error: {type(e).__name__}: {e}")
 				return False
 
 		print(f"Failed to communicate with board after {max_retries} attempts.")
