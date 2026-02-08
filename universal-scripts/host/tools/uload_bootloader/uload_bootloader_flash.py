@@ -210,7 +210,8 @@ class UloadFlashUtil:
 		print(f"  BID : {bid_path}")
 
 		# Wait for device to be ready to receive image.
-		print("\nPlease power off the board, set the DIP switches to the normal boot mode, and then power the board back on!")
+		print("\nPlease power off the board, set the DIP switches to the normal boot mode, and then power the board back on." \
+		"\nNote: Setting an incorrect boot mode may lead to unexpected behavior.")
 		print(f"\n{'='*SEPARATOR_WIDTH}")
 		print("** IMPORTANT: Do not change the Serial port compared to the initial setup. **")
 		print(f"{'='*SEPARATOR_WIDTH}\n")
