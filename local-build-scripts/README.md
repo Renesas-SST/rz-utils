@@ -18,6 +18,21 @@ This directory contains build scripts for all software stacks of the RZ Board Su
 1 directory, 8 files
 ```
 
+## Prerequisites
+
+Ubuntu 24.04 host machine or Docker container with Ubuntu 24.04 image.
+
+```bash
+sudo apt update
+sudo apt install \
+    build-essential \
+    gcc-aarch64-linux-gnu \
+    bc \
+    bison \
+    flex \
+    libssl-dev
+```
+
 ## Usage
 
 ```
@@ -87,7 +102,6 @@ Note: Before executing the build, please make sure that you have updated the con
 This configuration file contains the configurations for the build. Please make sure that you review all the settings carefully before performing a build.
 
 - **PLATFORM**: Select the supported platform.
-- **SDK_LOCATION**: Address the installed SDK.
 - **KERNEL_DIR**: Address the Linux Kernel source code location.
 - **UBOOT_DIR**: Address the U-Boot source code location.
 - **ATF_DIR**: Address the ATF source code location.

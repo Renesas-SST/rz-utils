@@ -3,27 +3,15 @@
 source ./config.ini
 source ./common.sh
 
-# POKY setup
-if [ ! -d "${SDK_LOCATION}" ];then
-	echo "There is no installed SDK at ${SDK_LOCATION} or it does not set properly at config.ini file."
-	echo "Please recheck your setup"
-	exit 1
-fi
-
-TOOLCHAIN=${SDK_LOCATION}/sysroots/x86_64-pokysdk-linux/usr/bin/aarch64-poky-linux
-export SDKTARGETSYSROOT=${SDK_LOCATION}/sysroots/cortexa55-poky-linux
-export PATH=${TOOLCHAIN}:${PATH}
 export ARCH=arm64
-export CROSS_COMPILE=aarch64-poky-linux-
+export CROSS_COMPILE=aarch64-linux-gnu-
 export KERNEL_CROSS_COMPILE=${CROSS_COMPILE}
-export KCFLAGS="--sysroot=$SDKTARGETSYSROOT"
 export OECORE_TUNE_CCARGS=" -mcpu=cortex-a55+crypto -mbranch-protection=standard"
-export CC="aarch64-poky-linux-gcc  -mcpu=cortex-a55+crypto -mbranch-protection=standard -fstack-protector-strong  -O2 -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security --sysroot=$SDKTARGETSYSROOT"
-export CXX="aarch64-poky-linux-g++  -mcpu=cortex-a55+crypto -mbranch-protection=standard -fstack-protector-strong  -O2 -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security --sysroot=$SDKTARGETSYSROOT"
-export CPP="aarch64-poky-linux-gcc -E  -mcpu=cortex-a55+crypto -mbranch-protection=standard -fstack-protector-strong  -O2 -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security --sysroot=$SDKTARGETSYSROOT"
-export LD="aarch64-poky-linux-ld  --sysroot=$SDKTARGETSYSROOT"
-export AS="aarch64-poky-linux-as "
-#source ${SDK_LOCATION}/environment-setup-cortexa55-poky-linux
+export CC="aarch64-linux-gnu-gcc  -mcpu=cortex-a55+crypto -mbranch-protection=standard -fstack-protector-strong  -O2 -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security"
+export CXX="aarch64-linux-gnu-g++  -mcpu=cortex-a55+crypto -mbranch-protection=standard -fstack-protector-strong  -O2 -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security"
+export CPP="aarch64-linux-gnu-gcc -E  -mcpu=cortex-a55+crypto -mbranch-protection=standard -fstack-protector-strong  -O2 -D_FORTIFY_SOURCE=2 -Wformat -Wformat-security -Werror=format-security"
+export LD="aarch64-linux-gnu-ld"
+export AS="aarch64-linux-gnu-as"
 
 # Allow PLATFORM override via positional arg
 if [ -n "${PLAT:-}" ]; then
@@ -34,6 +22,7 @@ fi
 # Main process
 echo "Starting the build script at $(pwd)"
 echo "Target platform ${PLATFORM}"
+echo "Using cross toolchain prefix: ${CROSS_COMPILE}"
 if [ -z "${1}" ] ; then
 	show_help
 else
