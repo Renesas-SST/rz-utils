@@ -53,6 +53,7 @@ Option:
                 - dtbs
                 - all
                 - modules
+                - modules-install
 
         2. uboot
             Build for U-Boot
@@ -103,6 +104,7 @@ This configuration file contains the configurations for the build. Please make s
 
 - **PLATFORM**: Select the supported platform.
 - **KERNEL_DIR**: Address the Linux Kernel source code location.
+- **KERNEL_MODULES_OUTPUT_DIR**: Address the output directory for the Linux Kernel modules.
 - **UBOOT_DIR**: Address the U-Boot source code location.
 - **ATF_DIR**: Address the ATF source code location.
 - **FLASH_WRITER_DIR**: Address the Flash-Writer source code location.

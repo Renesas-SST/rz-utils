@@ -123,6 +123,23 @@ mk_modules() {
 	echo "Build completed successfully"
 }
 
+mk_modules_install() {
+	if [ -z "${KERNEL_MODULES_OUTPUT_DIR:-}" ]; then
+		echo "KERNEL_MODULES_OUTPUT_DIR is not set in config.ini."
+		echo "Please recheck your setup"
+		exit 1
+	fi
+
+	mk_modules
+	echo '|============================================|'
+	echo '|              Install modules               |'
+	echo '|============================================|'
+	mkdir -p "${KERNEL_MODULES_OUTPUT_DIR}"
+	make INSTALL_MOD_PATH="${KERNEL_MODULES_OUTPUT_DIR}" modules_install
+	rm -f "${KERNEL_MODULES_OUTPUT_DIR}"/lib/modules/*/build
+	echo "Installed kernel modules to ${KERNEL_MODULES_OUTPUT_DIR}"
+}
+
 # Main Linux Kernel build
 echo "Starting the kernel build at ${KERNEL_DIR}"
 cd "${KERNEL_DIR}" || exit 1
@@ -153,6 +170,9 @@ case ${1} in
 		;;
 	'modules')
 		mk_modules
+		;;
+	'modules-install')
+		mk_modules_install
 		;;
 	*)
 		show_help

@@ -18,6 +18,7 @@ Option:
                 - dtbs
                 - all
                 - modules
+                - modules-install
 
         2. uboot
             Build for U-Boot
@@ -54,12 +55,16 @@ Option:
 
 For example: 
     Build all images (Kernel image and device tree) for the Linux Kernel:
-        $ ./main_build.sh kernel full-image
+        $ ./main_build.sh kernel all
 
     Clean the Linux Kernel (Kernel image and device tree) output:
         $ ./main_build.sh kernel clean
 
+    Build and install kernel modules to KERNEL_MODULES_OUTPUT_DIR:
+        $ ./main_build.sh kernel modules-install
+
 Note: Before executing the build, please make sure that you have updated the configuration file: config.ini at the top of the build scripts folder.
+      Kernel modules install output path is configured by KERNEL_MODULES_OUTPUT_DIR in config.ini.
 
 Platform Override:
     By default, PLATFORM is read from config.ini, but you can override it at runtime, for example:
