@@ -41,7 +41,7 @@ echo "Using DEFCONFIG=${DEFCONFIG}"
 
 # Setup the build
 kernel_setup() {
-	CONFIG_LOCALVERSION='CONFIG_LOCALVERSION="-yocto-standard"'
+	CONFIG_LOCALVERSION='CONFIG_LOCALVERSION="-arm64-renesas"'
 	CONFIG_LOCALVERSION_AUTO='CONFIG_LOCALVERSION_AUTO=n'
 	FILE="arch/arm64/configs/${DEFCONFIG}"
 
@@ -53,6 +53,7 @@ kernel_setup() {
 	if grep -q "$CONFIG_LOCALVERSION" "$FILE"; then
 		echo "Already set $CONFIG_LOCALVERSION"
 	else
+		echo "" >> "$FILE"
 		echo "$CONFIG_LOCALVERSION" >> "$FILE"
 		echo "Appended $CONFIG_LOCALVERSION to $FILE"
 	fi
@@ -60,6 +61,7 @@ kernel_setup() {
 	if grep -q "$CONFIG_LOCALVERSION_AUTO" "$FILE"; then
 		echo "Already set $CONFIG_LOCALVERSION_AUTO"
 	else
+		echo "" >> "$FILE"
 		echo "$CONFIG_LOCALVERSION_AUTO" >> "$FILE"
 		echo "Appended $CONFIG_LOCALVERSION_AUTO to $FILE"
 	fi
@@ -67,7 +69,7 @@ kernel_setup() {
 
 mk_image() {
 	echo '|============================================|'
-	echo '|          Build IMAGE Yocto-standard        |'
+	echo '|          Build IMAGE ARM64 RENESAS         |'
 	echo '|============================================|'
 	make -j"$(nproc)" Image
 }
@@ -83,7 +85,7 @@ mk_full_image() {
 	kernel_setup
 	make ${DEFCONFIG}
 	echo '|============================================|'
-	echo '|          Build IMAGE Yocto-standard        |'
+	echo '|          Build IMAGE ARM64 RENESAS         |'
 	echo '|============================================|'
 	make -j"$(nproc)" Image
 	echo '|============================================|'
