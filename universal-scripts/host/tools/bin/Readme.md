@@ -10,7 +10,7 @@ They are organized by operating system to support cross-platform usage.
 
 ## Purpose
 
-These tools are used by scripts such as `firmware-compile.py` to:
+These tools are used by scripts such as `firmware_compile.py` to:
 - Generate boot parameter files.
 - Build Firmware Image Packages (FIP).
 - Manipulate firmware binaries.

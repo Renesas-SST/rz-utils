@@ -700,7 +700,27 @@ class BootloaderFlashUtil:
 		if count:
 			cmd.append(f"count={count}")
 
-		print(f"Executing: {' '.join(cmd)}")
+			# Check for sudo/admin privileges
+			if platform.system() == "Linux":
+				if os.geteuid() != 0:
+					print("\n" + "=" * SEPARATOR_WIDTH)
+					print("eSD flashing requires elevated privileges to write to a raw device.")
+					print("The script will invoke 'sudo' for the dd command only.")
+					print("=" * SEPARATOR_WIDTH)
+					cmd = ["sudo"] + cmd
+
+			elif platform.system() == "Windows":
+				import ctypes
+				if not ctypes.windll.shell32.IsUserAnAdmin():
+					print("="*SEPARATOR_WIDTH)
+					print("ERROR: eSD flashing requires Administrator privileges on Windows.")
+					print("="*SEPARATOR_WIDTH)
+					print("Please open Command Prompt or PowerShell as Administrator,")
+					print("then run the script again.")
+					print("="*SEPARATOR_WIDTH)
+					sys.exit(1)
+
+			print(f"Executing: {' '.join(cmd)}")
 		try:
 			subprocess.run(cmd, check=True)
 		except FileNotFoundError:
@@ -720,7 +740,7 @@ class BootloaderFlashUtil:
 		if not os.path.exists(image_path):
 			die(msg=f'The file {image_path} does not exist.')
 		if os.path.splitext(image_path)[1].lower() != '.bin':
-			die(msg=f"The file {image_path} is not a .bin file and no matching .bin file was found. eSD flashing requires binary images.")
+			die(msg=f"The file {image_path} is not a .bin file and no matching .bin file was found. eSD flashing requires binaries in .bin format.")
 
 	def __finalize_esd_flash(self, target_device):
 		if platform.system() == "Windows":
