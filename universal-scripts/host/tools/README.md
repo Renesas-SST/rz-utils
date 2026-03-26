@@ -103,6 +103,7 @@ Make sure you have the following installed or available in `tools/bin/<os>` or `
 - `bpgen` - unified boot parameter generator (already included in the release package)
 - `fiptool` - TF-A utility (already included in the release package)
 - `objcopy` - part of GNU binutils (see installation steps above)
+- `dd` - used to write bootloader binaries directly to the raw SD card device during eSD flashing
 
 Firmware binaries and DTBs must be available in the following location (already included in the release package):
 
@@ -195,15 +196,14 @@ This table below lists the available options (and sensible defaults) for `ipl_fl
 |-----------------|---------|-----------------------|---------|---------------------|---------|
 | rzg2l-sbc       | g2l     | xspi                  | xspi    | udp                 | udp     |
 | rs-g2l100       | g2l     | xspi                  | xspi    | udp, otg            | otg     |
-| rzg2l-evk       | g2l     | xspi, emmc            | xspi    | udp, otg            | otg     |
-| rzv2l-evk       | v2l     | xspi, emmc            | xspi    | udp, otg            | otg     |
-| rzv2h-evk       | v2h     | xspi                  | xspi    | udp, otg            | otg     |
-| rzv2h-rdk       | v2h     | xspi                  | xspi    | udp                 | udp     |
+| rzg2l-evk       | g2l     | xspi, emmc, esd       | xspi    | udp, otg            | otg     |
+| rzv2l-evk       | v2l     | xspi, emmc, esd       | xspi    | udp, otg            | otg     |
+| rzv2h-evk       | v2h     | xspi, esd             | xspi    | udp, otg            | otg     |
+| rzv2h-rdk       | v2h     | xspi, esd             | xspi    | udp                 | udp     |
 | imdt-v2h-sbc    | v2h     | xspi                  | xspi    | udp, otg            | otg     |
 
 **Notes:**
-- *IPL flash method*: `emmc` for `rzv2h-evk` is **not supported yet**.
-- *IPL flash method*: `eSD` for all boards is **not supported yet**.
+- *IPL flash method*: `emmc` for `rzv2h` devices is **not supported yet**.
 - *RZ/G2L-SBC*: `otg` flashing is not supported. This board supports UDP flashing only.
 ---
 
@@ -213,7 +213,7 @@ This table below lists the available options (and sensible defaults) for `ipl_fl
   Defines where the **IPL/BL2** image is flashed:
   - `xspi` — xSPI flash for RZ/V2H, QSPI for RZV2L/RZG2L
   - `emmc` — eMMC device
-
+  - `esd` — eSD card
 - **`rootfs_flash_method`**
   How the **root filesystem (.wic)** is delivered to the SD/eMMC target:
   - `udp` — U-Boot `fastboot udp` over Ethernet
@@ -295,22 +295,31 @@ flowchart TD
 
   A[Start]:::terminal --> B[Display available boards]:::action
   B --> C[User selects board]:::action
-  C --> D[Display available serial ports]:::action
-  D --> E[User selects port]:::action
+  C --> D[Get board IPL flash method]:::action
+  D --> E{"IPL method is eSD?"}:::decision
 
-  E --> G{"Write IPL?"}:::decision
+  E -->|Yes| E1[Check for sudo/admin privileges]:::action
+  E1 --> E2{"Privileges OK?"}:::decision
+  E2 -->|No| E3["Exit: Requires sudo/admin"]:::terminal
+  E2 -->|Yes| E4[Prompt for eSD device selection]:::action
+  E4 --> G{"Write IPL?"}:::decision
+
+  E -->|No| F1[Display available serial ports]:::action
+  F1 --> F2[User selects port]:::action
+  F2 --> G{"Write IPL?"}:::decision
+
   G -->|Yes| H{"Select IPL method"}:::decision
   H -->|BootloaderFlash| M[Compile firmware: build BL2 & FIP with per-board DTB at runtime]:::action
   M --> J[Write IPL by BootloaderFlash]:::action
   H -->|ULoadFlash| K[Write IPL by ULoadFlash]:::action
 
-  J --> F{"Write RootFS?"}:::decision
-  K --> F{"Write RootFS?"}:::decision
-  G -->|No| F{"Write RootFS?"}:::decision
+  J --> F3{"Write RootFS?"}:::decision
+  K --> F3{"Write RootFS?"}:::decision
+  G -->|No| F3{"Write RootFS?"}:::decision
 
-  F -->|Yes| FR[Write RootFS to SD/eMMC]:::action
+  F3 -->|Yes| FR[Write RootFS to SD/eMMC via Fastboot]:::action
   FR --> L[End]:::terminal
-  F -->|No| L[End]:::terminal
+  F3 -->|No| L[End]:::terminal
 ```
 
 **Explanation:**
@@ -350,13 +359,13 @@ Refer to the [Basic Usage](#basic-usage) section for commands to run the tool.
 
 Both fastboot-otg and fastboot-udp write to U-Boot's current MMC device (typically mmc0). Depending on board and revision, mmc0 may point to the SD card or eMMC.
 
-| Board/Rev                                   | Fastboot Method | Typical mmc0 target                                  | How to change target           |
-|---------------------------------------------|-----------------|------------------------------------------------------|-------------------------------|
-| RZ/G2L-SBC                                  | UDP             | Carrier SD (board default)                            | N/A (single device)           |
+| Board/Rev                                   | Fastboot Method | Typical mmc0 target                                 | How to change target           |
+|---------------------------------------------|-----------------|-----------------------------------------------------|-------------------------------|
+| RZ/G2L-SBC                                  | UDP             | Carrier SD (board default)                          | N/A (single device)           |
 | RS-G2L100                                   | UDP, OTG        | eMMC                                                | N/A (single device)           |
-| RZ/V2L-EVK                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)      | Set SW1-2 ON to SD and OFF to eMMC |
-| RZ/G2L-EVK                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)      | Set SW1-2 ON to SD and OFF to eMMC |
-| RZ/V2H-EVK (Rev 1 – 2 SD cards)             | UDP, OTG        | SD card slot 0                                       | N/A (single device)           |
+| RZ/V2L-EVK                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)     | Set SW1-2 ON to SD and OFF to eMMC |
+| RZ/G2L-EVK                                  | UDP, OTG        | SD (CN3 on SOM or eMMC device depending on SW1)     | Set SW1-2 ON to SD and OFF to eMMC |
+| RZ/V2H-EVK (Rev 1 – 2 SD cards)             | UDP, OTG        | SD card slot 0                                      | N/A (single device)           |
 | RZ/V2H-EVK (Rev 2 – SD & eMMC)              | UDP, OTG        | eMMC                                                | N/A (single device)           |
 | RZ/V2H-RDK                                  | UDP             | SD card                                             | N/A (single device)           |
 | IMDT V2H-SBC                                | UDP, OTG        | eMMC                                                | N/A (single device)           |

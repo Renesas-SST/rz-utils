@@ -42,7 +42,7 @@ Please follow the steps below:
 
 **1. Prepare necessary images (required)**
 
-This step packages the artifacts built by `firmware-compile.py` and places them on the removable media so the ULoad-bootloader script (U-Boot console flow) can program xSPI.
+This step packages the artifacts built by `firmware_compile.py` and places them on the removable media so the ULoad-bootloader script (U-Boot console flow) can program xSPI.
 
 From `target/images`, gather the per-board files:
 - `bl2`: bl2_bp_&lt;board-name&gt;.bin
@@ -120,7 +120,7 @@ python3 uload_bootloader_flash.py \
 **Notes:**
 - If only a filename is provided (no path), the script searches the default directory (e.g., /uload-bootloader on partition 1, FAT32).
 - If a path is provided, the script searches only partition 1 (FAT32), not the ext4 partition.
-- Ensure the filenames match the board that was built with firmware-compile.py.
+- Ensure the filenames match the board that was built with firmware_compile.py.
 
 **4. Power on the board. It will start to load bootloader images from uboot into xSPI flash**
 
