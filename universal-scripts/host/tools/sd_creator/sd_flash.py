@@ -29,6 +29,7 @@ SERIAL_READ_BUFFER_SIZE = 4096
 DEVICE_READY_WAIT = 0.2
 BUFFER_CLEAR_WAIT = 0.5
 BUFFER_CHECK_WAIT = 0.3
+BUFFER_CHECK_TIMEOUT = 5
 MAX_RECONNECT_RETRIES = 3
 SEPARATOR_WIDTH = 85
 SERIAL_BY_ID_DIR = "/dev/serial/by-id"
@@ -269,6 +270,43 @@ class SdFlashUtil:
 			print("No fastboot devices detected.")
 		return devices
 
+	def __verify_mmc_device(self):
+		"""Verify that the MMC device is accessible on the board"""
+		try:
+			self.__writeSerialCmd('mmc dev 0')
+
+			# Read response with timeout
+			timeout = BUFFER_CHECK_TIMEOUT
+			start_time = time.time()
+			accumulated_data = ""
+
+			while time.time() - start_time < timeout:
+				if self.__serialPort.in_waiting > 0:
+					new_data = self.__serialPort.read(self.__serialPort.in_waiting).decode(errors='ignore')
+					accumulated_data += new_data
+					print(new_data, end='', flush=True)
+
+					# Check for success or error conditions
+					if 'OK' in accumulated_data or '=>' in accumulated_data:
+						break
+
+				time.sleep(0.1)
+
+			# Check for error conditions
+			if 'error' in accumulated_data.lower() or 'did not respond' in accumulated_data.lower():
+				return False
+
+			if 'OK' not in accumulated_data and '=>' not in accumulated_data:
+				print("\nWarning: Unexpected response from mmc dev command.")
+				return False
+
+			print("\nMMC device verified successfully.\n")
+			return True
+
+		except Exception as e:
+			print(f"Error verifying MMC device: {e}")
+			return False
+
 	# Function to write bootloader
 	def writeRootfs(self):
 		start_time = time.time()
@@ -301,6 +339,17 @@ class SdFlashUtil:
 		# Send another enter to get prompt
 		self.__writeSerialCmd('')
 		self.__serialRead('=>')
+
+		# Verify MMC device is accessible before proceeding with fastboot
+		if not self.__verify_mmc_device():
+			die(msg='MMC 0 device not accessible.\n\n' \
+				'Check:\n' \
+				'  - SD card is inserted (if mmc0 is SD card)\n' \
+				'  - eMMC is accessible (if mmc0 is eMMC)\n' \
+				'  - DIP/SOM switches set correctly for boot device selection\n' \
+				'    (e.g., RZ/G2L-EVK, RZ/V2L-EVK)\n' \
+				'  - Device is not corrupted\n\n' \
+				'Refer to the README file for your board\'s MMC 0 configuration.')
 
 		# UDP Fastboot
 		if (self.__args.fastbootType == "udp"):

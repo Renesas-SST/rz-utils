@@ -3,6 +3,7 @@ import os
 import json
 import argparse
 import glob
+import platform
 from dataclasses import dataclass
 from string import ascii_uppercase
 from serial.tools.list_ports import comports
@@ -33,6 +34,8 @@ MESSAGE_WIDTH = 85
 # Fixed baud rate for serial communication
 DEFAULT_BAUD_RATE = 115200
 
+script_name = os.path.basename(sys.argv[0])
+
 @dataclass
 class FlashInfo:
     bl2: str
@@ -57,15 +60,15 @@ class UniversalFlashUtil:
         self.selected_board_name = None
         self.selected_ip_address = "169.254.187.89"
         self.selected_info = None
-        
+
         # Ensure bpgen and fiptool are executable
         self._ensure_tools_executable()
-    
+
     def _ensure_tools_executable(self):
         """Make bpgen and fiptool executable if they exist"""
         import platform
         import stat
-        
+
         # Determine OS-specific bin directory
         os_name = platform.system().lower()
         if os_name == "linux":
@@ -74,7 +77,7 @@ class UniversalFlashUtil:
             bin_dir = os.path.join(self.__scriptDir, 'bin', 'windows')
         else:
             return  # Unknown OS, skip
-        
+
         tools = ['bpgen', 'fiptool']
         for tool in tools:
             tool_path = os.path.join(bin_dir, tool)
@@ -92,9 +95,9 @@ class UniversalFlashUtil:
         by_id_dir = "/dev/serial/by-id"
         if not os.path.exists(by_id_dir):
             return tty_device
-        
+
         device_name = os.path.basename(tty_device)
-        
+
         try:
             for by_id_link in glob.glob(os.path.join(by_id_dir, "*")):
                 real_path = os.path.realpath(by_id_link)
@@ -102,7 +105,7 @@ class UniversalFlashUtil:
                     return by_id_link
         except Exception as e:
             print(f"Warning: Could not resolve by-id path: {e}")
-        
+
         return tty_device
 
     def load_json(self):
@@ -113,7 +116,7 @@ class UniversalFlashUtil:
             print(f"File '{self.json_file}' not found.")
         except json.JSONDecodeError as e:
             print(f"Error decoding JSON: {e}")
-    
+
     def load_board_config(self):
         """Load board configuration from TOML file"""
         try:
@@ -143,6 +146,7 @@ class UniversalFlashUtil:
                 return False
             self.selected_board_name = board_names[selection]
             print(f"Selected board: {self.selected_board_name}\n")
+            return True
         except (ValueError, KeyboardInterrupt):
             print("\nOperation cancelled by user.")
             return False
@@ -154,7 +158,6 @@ class UniversalFlashUtil:
         print("Available serial ports:")
         for i, port in enumerate(ports):
             print(f"{i}: {port}")
-
 
         try:
             index = int(input(f"Select a port by number (Default {ports[0]}): ") or 0)
@@ -177,6 +180,23 @@ class UniversalFlashUtil:
             print(f"Device ID path: {self.selected_port_by_id}")
         print()
         return True
+
+    def select_ipl_method(self):
+        options = {
+            1: "BootloaderFlash",
+            2: "UloadFlash"
+        }
+
+        print("Write IPL method:")
+        for key, value in options.items():
+            print(f"{key}. {value}")
+
+        while True:
+            try:
+                choice = int(input("Select write IPL method by number: "))
+                return options[choice]
+            except ValueError:
+                print("Invalid input. Please enter a number.")
 
     def prepare_binaries(self):
         print("\n=== Building firmware artifacts ===")
@@ -246,8 +266,28 @@ class UniversalFlashUtil:
         devices = []
         system = platform.system()
         if system == "Linux":
-            devices.extend(sorted(glob.glob('/dev/sd[a-z]')))
-            devices.extend(sorted(glob.glob('/dev/mmcblk[0-9]')))
+            import subprocess
+
+            # Get all potential SD card devices
+            all_devices = []
+            all_devices.extend(sorted(glob.glob('/dev/sd[a-z]')))
+            all_devices.extend(sorted(glob.glob('/dev/mmcblk[0-9]')))
+
+            # Filter out only the root/system disk
+            for device in all_devices:
+                try:
+                    # Check if device is the root filesystem
+                    result = subprocess.run(['lsblk', '-no', 'MOUNTPOINT', device],
+                                        capture_output=True, text=True, timeout=5)
+                    mountpoints = result.stdout.strip()
+
+                    if '/' in mountpoints.split('\n'):
+                        continue
+
+                    devices.append(device)
+                except Exception:
+                    print(f"Warning: failed to validate device {device}: {e}. Skipping it.")
+
         elif system == "Windows":
             try:
                 import ctypes
@@ -257,10 +297,11 @@ class UniversalFlashUtil:
                         drive_path = f"{letter}:"
                         drive_type = ctypes.windll.kernel32.GetDriveTypeW(f"{letter}:\\")
                         if drive_type == 2:
-                            devices.append(f"{drive_path}")
+                            devices.append(drive_path)
                     mask >>= 1
             except Exception:
-                pass
+                print(f"Failed to detect removable drives on Windows: {e}")
+
         return devices
 
     def prompt_esd_device(self):
@@ -271,7 +312,7 @@ class UniversalFlashUtil:
             for idx, device in enumerate(candidates, start=1):
                 print(f"  {idx}. {device}")
             while selection is None:
-                choice = input("Select drive by number (press Enter to enter a path manually): ").strip()
+                choice = input("Select drive by number: ").strip()
                 if not choice:
                     break
                 try:
@@ -286,173 +327,310 @@ class UniversalFlashUtil:
             print("No SD card device provided. Aborting eSD flashing.")
             return None
         return selection
-    def select_ipl_method(self):
-        options = {
-            1: "BootloaderFlash",
-            2: "UloadFlash"
-        }
-
-        print("Write IPL method:")
-        for key, value in options.items():
-            print(f"{key}. {value}")
-
-        while True:
-            try:
-                choice = int(input("Select write IPL method by number: "))
-                return options[choice]
-            except ValueError:
-                print("Invalid input. Please enter a number.")
 
     def run(self):
         self.load_json()
         self.load_board_config()
-        self.input_board_selection()
+        if not self.input_board_selection():
+            return
         # Get information for the selected board
         self.info_get()
 
-        # eSD flashing requires no serial port
+        # Route to appropriate workflow based on flash method
+        if self.selected_info.ipl_flash_method == "esd":
+            self.run_esd_workflow()
+        elif self.selected_info.ipl_flash_method in ["xspi", "emmc"]:
+            self.run_serial_workflow()
+        else:
+            print(f"Unsupported IPL flash method: {self.selected_info.ipl_flash_method}")
+            return
+
+    def run_esd_workflow(self):
+        """Dedicated workflow for eSD flashing
+
+        Flow:
+        1. Flash rootfs to SD card (requires board connection via serial/UDP/OTG)
+        2. Power off board and swap SD card to host PC
+        3. Flash bootloader to SD card
+        4. Done - insert SD card back to board and boot
+        """
+        print("\n" + "="*MESSAGE_WIDTH)
+        print("eSD FLASHING MODE")
+        print("="*MESSAGE_WIDTH)
+        print("This workflow flashes rootfs first, then bootloader.")
+        print("SD card will need to be swapped between board and host PC.")
+        print("="*MESSAGE_WIDTH + "\n")
+
+        # Flash rootfs (requires board connection)
+        if self.yes_no_prompt("Step 1: Do you want to flash the rootfs to SD card?"):
+            print("Flashing rootfs requires board connection via serial/UDP/OTG.\n")
+
+            # Serial port selection for rootfs flashing
+            ret = self.input_serial_selection()
+            if not ret:
+                print("No serial ports detected. Please connect your board and try again.")
+                return
+            self._flash_rootfs_serial()
+        else:
+            print("Skipping rootfs flashing.")
+            if not self.yes_no_prompt("Do you want to continue with bootloader flashing only?"):
+                return
+
+        # Prepare for bootloader flashing
+        print("\n" + "="*MESSAGE_WIDTH)
+        print("BOOTLOADER FLASHING - SD CARD SWAP REQUIRED")
+        print("="*MESSAGE_WIDTH)
+        print("\nPlease follow these steps:")
+        print("1. Power OFF the board")
+        print("2. Remove the SD card from the board")
+        print("3. Insert the SD card into the host PC")
+        print("="*MESSAGE_WIDTH + "\n")
+
+        # Check for sudo/admin privileges for eSD flashing
+        if platform.system() == "Linux":
+            if os.geteuid() != 0:
+                print("eSD flashing requires root privileges. Please run the script with sudo or as root.")
+                return False
+        elif platform.system() == "Windows":
+            import ctypes
+            if not ctypes.windll.shell32.IsUserAnAdmin():
+                print("eSD flashing requires administrator privileges. Please run as Administrator.")
+                return False
+
+        # Flash bootloader to SD card
+        if self.yes_no_prompt("Do you want to flash the bootloader to SD card?"):
+            print("Writing bootloader by eSD flash...\n")
+            self.prepare_binaries()
+
+            esd_device = self.prompt_esd_device()
+            if not esd_device:
+                print("Skipping eSD bootloader flashing: no SD card device selected.")
+                return
+
+            print("\n" + "=" * MESSAGE_WIDTH)
+            print("WARNING: DESTRUCTIVE OPERATION")
+            print("=" * MESSAGE_WIDTH)
+            print(f"You are about to write bootloader data to raw device: {esd_device}")
+            print("Existing data on the selected device may be overwritten or corrupted.")
+            print("Make sure the selected device is the correct SD card.")
+            print("=" * MESSAGE_WIDTH)
+
+            if not self.yes_no_prompt(f"Proceed with flashing the bootloader to {esd_device}?"):
+                return
+
+            self._flash_bootloader_esd(esd_device)
+        else:
+            print("Skipping bootloader flashing.")
+            return
+
+        print("\n" + "="*MESSAGE_WIDTH)
+        print("SD card flashing complete!")
+        print("="*MESSAGE_WIDTH)
+        print("\nNext steps:")
+        print("1. Safely eject the SD card from the host PC")
+        print("2. Insert the SD card into the board")
+        print("3. Power on the board")
+        print("="*MESSAGE_WIDTH + "\n")
+
+    def run_serial_workflow(self):
+        """Workflow for QSPI/eMMC flashing"""
+        # Serial port selection
         ret = self.input_serial_selection()
-        if not ret and self.selected_info.ipl_flash_method != "esd":
+        if not ret:
             print("No serial ports detected. Please connect your board and try again.")
             return
 
         # Write IPL
-        if(self.yes_no_prompt("Do you want to write the IPL?")):
-            # Check if IPL method is selected
-            if (self.select_ipl_method() == "BootloaderFlash"):
+        if self.yes_no_prompt("Do you want to write the IPL?"):
+            ipl_method = self.select_ipl_method()
+
+            if ipl_method == "BootloaderFlash":
                 print("Writing IPL by bootloader flash...\n")
-                # Prepare firmware binaries before flashing
                 self.prepare_binaries()
-
-                bootloader_args = [
-                    '--board_name', f"{self.selected_board_name}",
-                    '--flash_method', f"{self.selected_info.ipl_flash_method}",
-                    '--serial_port', f"{self.selected_port}",
-                    '--serial_port_baud', f"{self.selected_baud_rate}",
-                    '--image_writer', f"{self.__imagesDir}/{self.selected_info.flash_writer}",
-                    '--image_bid', f"{self.__imagesDir}/{self.selected_info.board_identification}"
-                ]
-
-                if (self.selected_info.ipl_flash_method == "esd"):
-                    esd_device = self.prompt_esd_device()
-                    if not esd_device:
-                        print("Skipping eSD flashing: no SD card device selected.")
-                        return
-                    bootloader_args.extend(['--image_bl2', f"{self.__imagesDir}/bl2_{self.selected_board_name}.bin"])
-                    bootloader_args.extend(['--image_bl2_esd', f"{self.__imagesDir}/bl2_bp_esd_{self.selected_board_name}.bin"])
-                    bootloader_args.extend(['--image_fip', f"{self.__imagesDir}/fip_{self.selected_board_name}.bin"])
-                    bootloader_args.extend(['--esd_device', esd_device])
-                else: # xspi or emmc
-                    bootloader_args.extend(['--image_bl2', f"{self.__imagesDir}/{self.selected_info.bl2}"])
-                    bootloader_args.extend(['--image_fip', f"{self.__imagesDir}/{self.selected_info.fip}"])
-
-                bootloaderFlashUtil = BootloaderFlashUtil(args=bootloader_args)
-                if (self.selected_info.ipl_flash_method == "esd"):
-                    bootloaderFlashUtil.writeBootloaderESD()
-                else:
-                    bootloaderFlashUtil.setupSerialPort()
-                    bootloaderFlashUtil.writeBootloader()
-
-            # UloadFlash
-            else:
-                # Write uload bootloader
+                self._flash_bootloader_serial()
+            else:  # UloadFlash
                 print("Writing IPL by Uload bootloader...\n")
-                uload_bootloader_args = [
-                    '--board_name', f"{self.selected_board_name}",
-                    '--serial_port', f"{self.selected_port}",
-                    '--serial_port_baud', f"{self.selected_baud_rate}",
-                    '--image_bid', f"{self.selected_info.board_identification}"
-                ]
-                uloadFlashUtil = UloadFlashUtil(args=uload_bootloader_args)
-                uloadFlashUtil.writeUloadBootloader()
+                self._flash_uload_bootloader()
 
         # Write Rootfs
-        if(self.yes_no_prompt("Do you want to write the rootfs?")):
-            print("Writing rootfs...")
+        if self.yes_no_prompt("Do you want to write the rootfs?"):
+            self._flash_rootfs_serial()
 
-            # Prepare arguments for SD Flash
-            sdflash_args = [
-                '--board_name', f"{self.selected_board_name}",
-                '--serial_port', f"{self.selected_port}",
-                '--serial_port_baud', f"{self.selected_baud_rate}",
-                '--fastboot_type', f"{self.selected_info.rootfs_flash_method}",
-                '--image_rootfs', f"{self.__imagesDir}/{self.selected_info.rootfs}",
-            ]
-            
-            # Add by-id path for reliable reconnection after power cycle
-            if self.selected_port_by_id:
-                sdflash_args += ['--serial_port_by_id', self.selected_port_by_id]
+    def _flash_bootloader_esd(self, esd_device):
+        """Flash bootloader to SD card via eSD method"""
+        bootloader_args = [
+            '--board_name', self.selected_board_name,
+            '--flash_method', 'esd',
+            '--image_bl2', f"{self.__imagesDir}/bl2_{self.selected_board_name}.bin",
+            '--image_bl2_esd', f"{self.__imagesDir}/bl2_bp_esd_{self.selected_board_name}.bin",
+            '--image_fip', f"{self.__imagesDir}/fip_{self.selected_board_name}.bin",
+            '--image_bid', f"{self.__imagesDir}/{self.selected_info.board_identification}",
+            '--esd_device', esd_device
+        ]
 
-            method = (self.selected_info.rootfs_flash_method or "").lower()
+        bootloaderFlashUtil = BootloaderFlashUtil(args=bootloader_args)
+        bootloaderFlashUtil.writeBootloaderESD()
+        print("Bootloader flashing complete.\n")
 
-            if method == "udp":
-                # Get ethernet port info from board config
-                ethernet_port_info = ""
-                ether_port = "1"  # default value
-                available_ports = []
-                
-                if self.selected_board_name in self.board_config:
-                    board_cfg = self.board_config[self.selected_board_name]
-                    if 'ethernet_udp_index' in board_cfg:
-                        udp_index = board_cfg['ethernet_udp_index']
-                        if isinstance(udp_index, list):
-                            # If multiple ports available, allow user to select
-                            available_ports = [str(p) for p in udp_index]
-                            ethernet_port_info = f" (Available ports: {', '.join(available_ports)})"
-                        else:
-                            ether_port = str(udp_index)
-                            ethernet_port_info = f" (Using Ethernet port: {ether_port})"
+    def _flash_bootloader_serial(self):
+        """Flash bootloader via serial connection"""
+        bootloader_args = [
+            '--board_name', f"{self.selected_board_name}",
+            '--flash_method', f"{self.selected_info.ipl_flash_method}",
+            '--serial_port', f"{self.selected_port}",
+            '--serial_port_baud', f"{self.selected_baud_rate}",
+            '--image_writer', f"{self.__imagesDir}/{self.selected_info.flash_writer}",
+            '--image_bl2', f"{self.__imagesDir}/{self.selected_info.bl2}",
+            '--image_fip', f"{self.__imagesDir}/{self.selected_info.fip}",
+            '--image_bid', f"{self.__imagesDir}/{self.selected_info.board_identification}"
+        ]
+
+        if self.selected_port_by_id:
+            bootloader_args.extend(['--serial_port_by_id', self.selected_port_by_id])
+
+        bootloaderFlashUtil = BootloaderFlashUtil(args=bootloader_args)
+        bootloaderFlashUtil.setupSerialPort()
+        bootloaderFlashUtil.writeBootloader()
+
+    def _flash_uload_bootloader(self):
+        """Flash uload bootloader via serial"""
+        uload_bootloader_args = [
+            '--board_name', self.selected_board_name,
+            '--serial_port', self.selected_port,
+            '--serial_port_baud', f"{self.selected_baud_rate}",
+            '--image_bid', f"{self.selected_info.board_identification}"
+        ]
+
+        uloadFlashUtil = UloadFlashUtil(args=uload_bootloader_args)
+        uloadFlashUtil.writeUloadBootloader()
+
+    def _flash_rootfs_serial(self):
+        """Flash rootfs via serial (UDP/OTG fastboot)"""
+        print("Writing rootfs...")
+
+        # Prepare arguments for SD Flash
+        sdflash_args = [
+            '--board_name', f"{self.selected_board_name}",
+            '--serial_port', f"{self.selected_port}",
+            '--serial_port_baud', f"{self.selected_baud_rate}",
+            '--fastboot_type', f"{self.selected_info.rootfs_flash_method}",
+            '--image_rootfs', f"{self.__imagesDir}/{self.selected_info.rootfs}",
+        ]
+
+        # Add by-id path for reliable reconnection after power cycle
+        if self.selected_port_by_id:
+            sdflash_args += ['--serial_port_by_id', self.selected_port_by_id]
+
+        method = (self.selected_info.rootfs_flash_method or "").lower()
+
+        if method == "udp":
+            # Get ethernet port info from board config
+            ethernet_port_info = ""
+            ether_port = "1"  # default value
+            available_ports = []
+
+            if self.selected_board_name in self.board_config:
+                board_cfg = self.board_config[self.selected_board_name]
+                if 'ethernet_udp_index' in board_cfg:
+                    udp_index = board_cfg['ethernet_udp_index']
+                    if isinstance(udp_index, list):
+                        # If multiple ports available, allow user to select
+                        available_ports = [str(p) for p in udp_index]
+                        ethernet_port_info = f" (Available ports: {', '.join(available_ports)})"
                     else:
-                        print(f"Warning: 'ethernet_udp_index' not found in board config for {self.selected_board_name}. Using default port 1.")
-                        ether_port = "1"
-                        ethernet_port_info = " (default port index: 1)"
-                        available_ports = []
-                
-                print(f"\n{'='*MESSAGE_WIDTH}")
-                print(f"** IMPORTANT: Ethernet Connection Required **")
-                print(f"{'='*MESSAGE_WIDTH}")
-                print(f"Please connect an Ethernet cable between:")
-                print(f"  - Host (PC or router) Ethernet port")
-                print(f"  - Board Ethernet port{ethernet_port_info}")
-                print(f"\nEnsure both devices are on the same network segment.")
-                print(f"{'='*MESSAGE_WIDTH}\n")
-                
-                # If multiple ports are available, let user select
-                if available_ports:
-                    print(f"Available Ethernet ports: {', '.join(available_ports)}")
-                    while True:
-                        selected_port = input(f"Select Ethernet port (default {available_ports[0]}): ").strip() or available_ports[0]
-                        if selected_port in available_ports:
-                            ether_port = selected_port
-                            break
-                        else:
-                            print(f"Invalid port. Please select from: {', '.join(available_ports)}")
-                
-                self.selected_ip_address = input(f"Enter IP address for fastboot udp (default {self.selected_ip_address}): ") or self.selected_ip_address
-                
-                sdflash_args += ['--ether_port', ether_port,
-                         '--ip_address', self.selected_ip_address]
-            elif method == "otg":
-                # No Ethernet/IP options needed for OTG/USB fastboot
-                print(f"\n{'='*MESSAGE_WIDTH}")
-                print(f"** IMPORTANT: USB OTG Flashing Mode **")
-                print(f"{'='*MESSAGE_WIDTH}")
-                print(f"USB OTG flashing will be used to write the rootfs.")
-                print(f"Ensure the board's USB OTG port is connected to the PC.")
-                print(f"{'='*MESSAGE_WIDTH}\n")
-            else:
-                print(f"Unsupported rootfs flash method: '{self.selected_info.rootfs_flash_method}'")
-                print(f"Supported methods are: 'udp' or 'otg'")
-                return False
+                        ether_port = str(udp_index)
+                        ethernet_port_info = f" (Using Ethernet port: {ether_port})"
+                else:
+                    print(f"Warning: 'ethernet_udp_index' not found in board config for {self.selected_board_name}. Using default port 1.")
+                    ether_port = "1"
+                    ethernet_port_info = " (default port index: 1)"
+                    available_ports = []
 
-            sdFlashUtil = SdFlashUtil(args=sdflash_args)
-            sdFlashUtil.writeRootfs()
+            print(f"\n{'='*MESSAGE_WIDTH}")
+            print(f"** IMPORTANT: Ethernet Connection Required **")
+            print(f"{'='*MESSAGE_WIDTH}")
+            print(f"Please connect an Ethernet cable between:")
+            print(f"  - Host (PC or router) Ethernet port")
+            print(f"  - Board Ethernet port{ethernet_port_info}")
+            print(f"\nEnsure both devices are on the same network segment.")
+            print(f"{'='*MESSAGE_WIDTH}\n")
+
+            # If multiple ports are available, let user select
+            if available_ports:
+                print(f"Available Ethernet ports: {', '.join(available_ports)}")
+                while True:
+                    selected_port = input(f"Select Ethernet port (default {available_ports[0]}): ").strip() or available_ports[0]
+                    if selected_port in available_ports:
+                        ether_port = selected_port
+                        break
+                    else:
+                        print(f"Invalid port. Please select from: {', '.join(available_ports)}")
+
+            self.selected_ip_address = input(f"Enter IP address for fastboot udp (default {self.selected_ip_address}): ") or self.selected_ip_address
+
+            sdflash_args += ['--ether_port', ether_port,
+                        '--ip_address', self.selected_ip_address]
+        elif method == "otg":
+            # No Ethernet/IP options needed for OTG/USB fastboot
+            print(f"\n{'='*MESSAGE_WIDTH}")
+            print(f"** IMPORTANT: USB OTG Flashing Mode **")
+            print(f"{'='*MESSAGE_WIDTH}")
+            print(f"USB OTG flashing will be used to write the rootfs.")
+            print(f"Ensure the board's USB OTG port is connected to the PC.")
+            print(f"{'='*MESSAGE_WIDTH}\n")
+        else:
+            print(f"Unsupported rootfs flash method: '{self.selected_info.rootfs_flash_method}'")
+            print(f"Supported methods are: 'udp' or 'otg'")
+            return False
+
+        sdFlashUtil = SdFlashUtil(args=sdflash_args)
+        sdFlashUtil.writeRootfs()
+
+    def _configure_udp_flashing(self, sdflash_args):
+        """Configure UDP flashing parameters"""
+        ether_port = "1"
+        available_ports = []
+
+        if self.selected_board_name in self.board_config:
+            board_cfg = self.board_config[self.selected_board_name]
+            if 'ethernet_udp_index' in board_cfg:
+                udp_index = board_cfg['ethernet_udp_index']
+                if isinstance(udp_index, list):
+                    available_ports = [str(p) for p in udp_index]
+                else:
+                    ether_port = str(udp_index)
+
+        if not available_ports and ether_port:
+            available_ports = [ether_port]
+
+        print(f"\n{'='*MESSAGE_WIDTH}")
+        print("** IMPORTANT: Ethernet Connection Required **")
+        print(f"{'='*MESSAGE_WIDTH}")
+        print("Please connect an Ethernet cable between:")
+        print("  - Host (PC or router) Ethernet port")
+        print(f"  - Board Ethernet port (Available: {', '.join(available_ports)})")
+        print("Ensure both devices are on the same network segment.")
+        print(f"{'='*MESSAGE_WIDTH}\n")
+
+        # Allow user to select port if multiple available
+        if len(available_ports) > 1:
+            print(f"Available Ethernet ports: {', '.join(available_ports)}")
+            while True:
+                selected_port = input(f"Select Ethernet port (default {available_ports[0]}): ").strip() or available_ports[0]
+                if selected_port in available_ports:
+                    ether_port = selected_port
+                    break
+                print(f"Invalid port. Please select from: {', '.join(available_ports)}")
+
+        ip_address = input(f"Enter IP address for fastboot udp (default {self.selected_ip_address}): ") or self.selected_ip_address
+
+        sdflash_args.extend(['--ether_port', ether_port, '--ip_address', ip_address])
 
 def show_help():
     """Display help menu with options"""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     readme_path = os.path.join(script_dir, "README.md")
-    
+
     print("\n" + "="*MESSAGE_WIDTH)
     print("Universal Flash Tool - Help Menu")
     print("="*MESSAGE_WIDTH)
@@ -461,17 +639,16 @@ def show_help():
     print("  2. Run the flash tool")
     print("  3. Exit")
     print("="*MESSAGE_WIDTH)
-    
+
     while True:
         try:
             choice = input("\nSelect an option (1-3): ").strip()
-            
+
             if choice == "1":
                 # Display README.md path
                 if os.path.exists(readme_path):
-                    import platform
                     os_name = platform.system()
-                    
+
                     # Determine which section to refer to based on OS
                     if os_name == "Windows":
                         prereq_section = "Prerequisites -> Python, Environment and Tool Dependencies -> Windows"
@@ -479,7 +656,7 @@ def show_help():
                         prereq_section = "Prerequisites -> Python, Environment and Tool Dependencies -> Linux"
                     else:
                         prereq_section = "Prerequisites section"
-                    
+
                     print("\n" + "="*MESSAGE_WIDTH)
                     print("Installation and Setup Instructions")
                     print("="*MESSAGE_WIDTH)
@@ -495,7 +672,7 @@ def show_help():
                     elif os_name == "Windows":
                         print(f"  - WinUSB driver (via Zadig) for USB OTG flashing")
                     print("="*MESSAGE_WIDTH)
-                    
+
                     # Ask if user wants to continue to flash tool
                     continue_choice = input("\nDo you want to run the flash tool now? (y/n): ").strip().lower()
                     if continue_choice in ['y', 'yes']:
@@ -508,14 +685,14 @@ def show_help():
                     
             elif choice == "2":
                 return True
-                
+
             elif choice == "3":
                 print("\nExiting...")
                 return False
-                
+
             else:
                 print("Invalid choice. Please enter 1, 2, or 3.")
-                
+
         except (KeyboardInterrupt, EOFError):
             print("\n\nOperation cancelled.")
             return False
@@ -529,14 +706,13 @@ def main():
         )
         parser.add_argument('--help', '-h', action='store_true', 
                           help='Show help menu with installation instructions')
-        
         args = parser.parse_args()
-        
+
         # If --help is provided, show help menu
         if args.help:
             if not show_help():
                 sys.exit(0)
-        
+
         # Run the flash tool
         universalFlashUtil = UniversalFlashUtil()
         universalFlashUtil.run()

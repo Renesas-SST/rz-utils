@@ -1,8 +1,8 @@
-# firmware-compile.py
+# firmware_compile.py
 
 ## Overview
 
-`firmware-compile.py` is a helper script for building Renesas RZ family firmware artifacts, including **BL2**, **Boot Parameter (BP)** files, **U-Boot** binaries, and **FIP** packages.
+`firmware_compile.py` is a helper script for building Renesas RZ family firmware artifacts, including **BL2**, **Boot Parameter (BP)** files, **U-Boot** binaries, and **FIP** packages.
 
 It automatically pulls board and flash-method–specific configuration (such as VMA addresses) from:
 
@@ -42,8 +42,16 @@ target/images/
 
 Basic example:
 
+### On Windows:
+
 ```bash
-python3 firmware-compile.py --soc g2l --board rzg2l-sbc --method xspi
+py firmware_compile.py --soc g2l --board rzg2l-sbc --method xspi
+```
+
+### On Linux:
+
+```bash
+python3 firmware_compile.py --soc g2l --board rzg2l-sbc --method xspi
 ```
 
 This will:
