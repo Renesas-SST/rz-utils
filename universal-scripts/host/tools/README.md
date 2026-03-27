@@ -374,11 +374,15 @@ Both fastboot-otg and fastboot-udp write to U-Boot's current MMC device (typical
 py universal_flash.py
 ```
 
+**Note**: eSD flashing requires Administrator privileges on Windows. Please open PowerShell or Command Prompt as Administrator by right-clicking it and selecting Run as Administrator.
+
 ### On Linux:
 
 ```bash
 python3 universal_flash.py
 ```
+
+**Note:** eSD flashing requires elevated privileges to write to the raw SD card device. You may be prompted for your sudo password during the eSD flashing step.
 
 ### Dedicated Flashing Scripts
 

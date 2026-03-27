@@ -4,6 +4,7 @@ import json
 import argparse
 import glob
 import platform
+import subprocess
 from dataclasses import dataclass
 from string import ascii_uppercase
 from serial.tools.list_ports import comports
@@ -456,8 +457,47 @@ class UniversalFlashUtil:
         if self.yes_no_prompt("Do you want to write the rootfs?"):
             self._flash_rootfs_serial()
 
+    def resolve_device(self, device):
+        import platform
+        import subprocess
+        import re
+
+        if platform.system() == "Windows":
+            if device.startswith(r'\\.\PhysicalDrive'):
+                return device
+
+            if len(device) == 2 and device[1] == ':':
+                drive_letter = device[0]
+
+                try:
+                    cmd = f'wmic logicaldisk where "DeviceID=\'{device}\'" get VolumeName, DeviceID'
+                    subprocess.check_output(cmd, shell=True)
+
+                    # Get disknumber
+                    ps_cmd = f"(Get-Partition -DriveLetter {drive_letter}).DiskNumber"
+                    disk_number = subprocess.check_output(
+                        ["powershell", "-Command", ps_cmd],
+                        text=True
+                    ).strip()
+
+                    raw_device = f'\\\\.\\PhysicalDrive{disk_number}'
+                    print(f"[INFO] {device} → {raw_device}")
+
+                    return raw_device
+
+                except Exception as e:
+                    print(f"[ERROR] Failed to resolve {device}: {e}")
+                    return f'\\\\.\\{device}'
+
+            return device
+
+        return device
+
     def _flash_bootloader_esd(self, esd_device):
         """Flash bootloader to SD card via eSD method"""
+
+        raw_device = self.resolve_device(esd_device)
+
         bootloader_args = [
             '--board_name', self.selected_board_name,
             '--flash_method', 'esd',
@@ -465,7 +505,7 @@ class UniversalFlashUtil:
             '--image_bl2_esd', f"{self.__imagesDir}/bl2_bp_esd_{self.selected_board_name}.bin",
             '--image_fip', f"{self.__imagesDir}/fip_{self.selected_board_name}.bin",
             '--image_bid', f"{self.__imagesDir}/{self.selected_info.board_identification}",
-            '--esd_device', esd_device
+            '--esd_device', raw_device
         ]
 
         bootloaderFlashUtil = BootloaderFlashUtil(args=bootloader_args)
