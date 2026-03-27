@@ -4,8 +4,8 @@
 `firmware-compile.py` is a helper script for building Renesas RZ family firmware artifacts, including **BL2**, **Boot Parameter (BP)** files, **U-Boot** binaries, and **FIP** packages.  
 
 It automatically pulls board and flash-method–specific configuration (such as VMA addresses) from:
-- [`boards_flash_config.toml`](tools/config/boards_flash_config.toml or config/boards_flash_config.toml)  
-- [`flash_images.json`](target/images/flash_images.json)  
+- [`boards_flash_config.toml`](../config/boards_flash_config.toml)  
+- [`flash_images.json`](../flash_images.json)  
 
 The script supports multiple boards and flash methods without hardcoding addresses.
 

@@ -17,12 +17,6 @@ BL2 = ["11E00", "00000"]
 FIP = ["00000", "1D200"]
 BID = ["00810", "1C700"]
 
-# Bootloader flash eMMC
-[rzg2l-sbc.emmc]
-BL2 = ["1", "1", "11E00"]
-FIP = ["1", "100", "00000", "2", "8"]
-BID = ["1", "FA", "810"]
-
 ####################################
 # RZ/G2L EVK board configurations
 ####################################
@@ -110,7 +104,7 @@ bl2_base = "0x8103000"
 fconf_dtb_base = "0x08130000"
 
 # Uload bootloader
-flash_address = ["00000", "60000", "120000"]
+flash_address = ["00000", "60000", "5F300"]
 load_address = "0x48000000"
 
 # Bootloader flash SPI
@@ -122,8 +116,8 @@ FIP = ["00000", "60000"]
 # Bootloader flash eMMC
 [rzv2h-evk.emmc]
 BL2 = ["1", "1", "8101E00"]
-FIP = ["1", "100", "00000", "2", "8"]
-BID = ["1", "200", "120000", "762", "762"]
+FIP = ["1", "300", "44000000", "2", "8"]
+BID = ["1", "2FA", "810"]
 
 ####################################
 # RZ/V2H RDK board configurations
@@ -137,7 +131,7 @@ bl2_base = "0x8103000"
 fconf_dtb_base = "0x08130000"
 
 # Uload bootloader
-flash_address = ["00000", "60000", "120000"]
+flash_address = ["00000", "60000", "5F300"]
 load_address = "0x48000000"
 
 # Bootloader flash SPI
@@ -145,6 +139,11 @@ load_address = "0x48000000"
 BL2 = ["8101E00", "00000"]
 BID = ["00810", "5F300"]
 FIP = ["00000", "60000"]
+
+[rzv2h-rdk.emmc]
+BL2 = ["1", "1", "8101E00"]
+FIP = ["1", "300", "44000000", "2", "8"]
+BID = ["1", "2FA", "810"]
 
 ####################################
 # IMDT V2H Single Board Computer configurations
@@ -158,7 +157,7 @@ bl2_base = "0x8103000"
 fconf_dtb_base = "0x08130000"
 
 # Uload bootloader
-flash_address = ["00000", "60000", "120000"]
+flash_address = ["00000", "60000", "5F300"]
 load_address = "0x48000000"
 
 # Bootloader flash SPI
@@ -170,5 +169,5 @@ FIP = ["00000", "60000"]
 # Bootloader flash eMMC
 [imdt-v2h-sbc.emmc]
 BL2 = ["1", "1", "8101E00"]
-FIP = ["1", "100", "00000", "2", "8"]
-BID = ["1", "200", "120000", "762", "762"]
+FIP = ["1", "300", "44000000", "2", "8"]
+BID = ["1", "2FA", "810"]
