@@ -295,7 +295,8 @@ class UniversalFlashUtil:
                 uload_bootloader_args = [
                     '--board_name', f"{self.selected_board_name}",
                     '--serial_port', f"{self.selected_port}",
-                    '--serial_port_baud', f"{self.selected_baud_rate}"
+                    '--serial_port_baud', f"{self.selected_baud_rate}",
+                    '--image_bid', f"{self.selected_info.board_identification}"
                 ]
                 uloadFlashUtil = UloadFlashUtil(args=uload_bootloader_args)
                 uloadFlashUtil.writeUloadBootloader()
