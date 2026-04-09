@@ -489,17 +489,24 @@ class BootloaderFlashUtil:
 
 		Args:
 			max_retries: Maximum number of retry attempts
-			allow_uboot_prompt: If True, also accept U-Boot prompt (=>) as success condition
 		"""
+		self.__initialConnection = True
+		wait_start = time.time()
+
 		for attempt in range(max_retries):
 			try:
 				while self.__initialConnection:
 					ports = [port.device for port in comports()]
-					self.__serialPortPath = ports[0]
-					if self.__serialPortPath != self.__oldPort:
-						self.__initialConnection = False
-					else:
+
+					# Wait until the originally selected port is lost
+					if self.__oldPort in ports:
+						if time.time() - wait_start > WAIT_POWER_TIMEOUT:
+							print(f"Timeout waiting for serial port {self.__oldPort} to disconnect.")
+							return False
 						time.sleep(0.5)
+						continue
+
+					self.__initialConnection = False
 
 				# Need reconnection
 				if attempt < max_retries - 1:
