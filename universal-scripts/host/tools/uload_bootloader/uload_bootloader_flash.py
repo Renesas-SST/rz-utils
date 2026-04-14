@@ -463,7 +463,7 @@ class UloadFlashUtil:
 
 # Util function to die with error
 def die(msg='', code=1):
-	print(f'Error: {msg}')
+	print(f'\nError: {msg}')
 	exit(code)
 
 def main():

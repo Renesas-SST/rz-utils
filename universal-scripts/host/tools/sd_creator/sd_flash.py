@@ -24,6 +24,7 @@ DEFAULT_FASTBOOT_SERIAL = "Renesas_RZ_CMN"
 SERIAL_RECONNECT_TIMEOUT = 30
 WAIT_POWER_TIMEOUT = 120
 SERIAL_RECONNECT_CHECK_INTERVAL = 0.1
+SERIAL_READ_TIMEOUT_INTERVAL = 0.1
 SERIAL_READ_TIMEOUT = 10
 SERIAL_READ_BUFFER_SIZE = 4096
 DEVICE_READY_WAIT = 0.2
@@ -270,10 +271,10 @@ class SdFlashUtil:
 			print("No fastboot devices detected.")
 		return devices
 
-	def __verify_mmc_device(self):
+	def __verify_mmc_device(self, mmcdev="mmc0"):
 		"""Verify that the MMC device is accessible on the board"""
 		try:
-			self.__writeSerialCmd('mmc dev 0')
+			self.__writeSerialCmd(f'mmc dev {mmcdev}')
 
 			# Read response with timeout
 			timeout = BUFFER_CHECK_TIMEOUT
@@ -340,23 +341,25 @@ class SdFlashUtil:
 		self.__writeSerialCmd('')
 		self.__serialRead('=>')
 
+		mmcdev = self.__get_env_from_uboot("mmcdev")
+
 		# Verify MMC device is accessible before proceeding with fastboot
-		if not self.__verify_mmc_device():
-			die(msg='MMC 0 device not accessible.\n\n' \
+		if not self.__verify_mmc_device(mmcdev=mmcdev):
+			die(msg=f'mmc{mmcdev} device not accessible.\n\n'
 				'Check:\n' \
-				'  - SD card is inserted (if mmc0 is SD card)\n' \
-				'  - eMMC is accessible (if mmc0 is eMMC)\n' \
+				f'  - SD card is inserted (if mmc{mmcdev} is SD card)\n' \
+				f'  - eMMC is accessible (if mmc{mmcdev} is eMMC)\n' \
 				'  - DIP/SOM switches set correctly for boot device selection\n' \
 				'    (e.g., RZ/G2L-EVK, RZ/V2L-EVK)\n' \
 				'  - Device is not corrupted\n\n' \
-				'Refer to the README file for your board\'s MMC 0 configuration.')
+				f'Refer to the README file for your board\'s MMC configuration.')
 
 		# UDP Fastboot
 		if (self.__args.fastbootType == "udp"):
-			self.__handle_udp_fastboot()
+			self.__handle_udp_fastboot(mmcdev=mmcdev)
 		# OTG Fastboot
 		elif (self.__args.fastbootType == "otg"):
-			self.__handle_otg_fastboot()
+			self.__handle_otg_fastboot(mmcdev=mmcdev)
 
 		print("Closed serial port.")
 		self.__serialPort.close()
@@ -365,10 +368,40 @@ class SdFlashUtil:
 		elapsed_time = end_time - start_time
 		print(f"Elapsed time: {elapsed_time:.6f} seconds")
 
-	def __handle_udp_fastboot(self):
+	def __get_env_from_uboot(self, env_var):
+		"""Read env from U-Boot environment. Returns the value as a string, or None if not found."""
+		self.__writeSerialCmd(f'printenv {env_var}')
+		time.sleep(BUFFER_CHECK_WAIT)
+
+		output = ""
+		start = time.time()
+		while time.time() - start < SERIAL_READ_TIMEOUT:
+			if self.__serialPort.in_waiting > 0:
+				output += self.__serialPort.read(self.__serialPort.in_waiting).decode(errors='ignore')
+				if '=>' in output:
+					break
+			time.sleep(SERIAL_READ_TIMEOUT_INTERVAL)
+
+		print(output, end='', flush=True)
+
+		for line in output.splitlines():
+			line = line.strip()
+			if line.startswith(f'{env_var}='):
+				value = line.split('=', 1)[1].strip()
+				if value.isdigit():
+					return int(value)
+
+		print(f"Warning: {env_var} not found in U-Boot env, defaulting to 0")
+		return None
+
+	def __handle_udp_fastboot(self, mmcdev=None):
 		self.__getEtherAddress()
 
 		print('fastboot udp mode')
+		if (mmcdev is None):
+			mmcdev = "mmc0"
+			print("mmcdev not found, defaulting to mmc0")
+
 		self.__writeSerialCmd('setenv ipaddr ' + self.__args.ipAddress)
 		self.__writeSerialCmd(f'setenv ethact ethernet@{self.__etherAddress[self.__args.etherPort]}')
 		self.__writeSerialCmd('fastboot udp')
@@ -389,10 +422,15 @@ class SdFlashUtil:
 		# Run fastboot commands only once (no retry)
 		self.__runSubprocessCommand(f"{fastboot_command} getvar version-bootloader")
 		self.__runSubprocessCommand(f"{fastboot_command} getvar version")
-		self.__runSubprocessCommand(f"{fastboot_command} flash rawimg {self.__args.rootfsImage}")
+		self.__runSubprocessCommand(f"{fastboot_command} flash mmc{mmcdev} {self.__args.rootfsImage}")
 
-	def __handle_otg_fastboot(self):
+	def __handle_otg_fastboot(self, mmcdev=None):
 		print('fastboot usb otg mode')
+
+		if (mmcdev is None):
+			mmcdev = "mmc0"
+			print("mmcdev not found, defaulting to mmc0")
+
 		self.__writeSerialCmd(f"setenv serial# {self.__fastbootDevice}")
 		self.__writeSerialCmd('saveenv')
 		self.__serialRead('OK')
@@ -407,7 +445,8 @@ class SdFlashUtil:
 				"Ensure the board is connected via the USB OTG port and that all prerequisites (see README) are met"
 			))
 
-		self.__runSubprocessCommand(f"{self.__fastboot} -s {self.__fastbootDevice} flash mmc0 {self.__args.rootfsImage}")
+		print(f"Using target flash device: mmc{mmcdev}")
+		self.__runSubprocessCommand(f"{self.__fastboot} -s {self.__fastbootDevice} flash mmc{mmcdev} {self.__args.rootfsImage}")
 
 	def __runSubprocessCommand(self, command):
 		try:
@@ -500,7 +539,7 @@ class SdFlashUtil:
 
 # Util function to die with error
 def die(msg='', code=1):
-	print(f'Error: {msg}')
+	print(f'\nError: {msg}')
 	exit(code)
 
 def main():
