@@ -109,13 +109,15 @@ Specify the Ethernet device index with `--ether_port` when using `--fastboot_typ
 | rzv2h-rdk  | 0 |
 | imdt-v2h-sbc  | 0, 1 |
 
-> **Note for rzv2h-rdk board:**
-> 
-> The RZ/V2H-RDK board does not have a RESET button. To reset the board, you must power-cycle by unplugging and re-plugging the power adapter. Since the debug/OTG USB port and the board's main power are supplied through the same power jack, the USB device will disconnect during power-cycle, and the serial port will disappear from the host PC.
-> 
-> In contrast, RZ/{G,V}2L-EVK boards provide a RESET button, which allows you to reset the board without removing power, so the USB connection and serial port remain available during flashing.
-> 
-> When performing a power-cycle on RZ/V2H-RDK, make sure not to change the USB port or cable on your PC, and always reconnect both the power and USB exactly as before to avoid reconnection issues during flashing or debugging.
+> **Note for RZ/V2H-RDK:**
+>
+> - This board does not provide a dedicated **RESET** button. To restart the board or apply a boot mode change, you must power-cycle it by unplugging and reconnecting the power adapter.
+>
+> - On RZ/V2H-RDK, the USB serial port is powered from the same source as the board. As a result, the USB device disconnects during power-cycle and the serial port disappears temporarily from the host PC before re-enumerating.
+>
+> - USB and serial-port behavior during reset or power-cycle depends on the hardware design of each board. Some boards keep the USB serial interface available during reset, while others disconnect and re-enumerate on the host.
+>
+> - When power-cycling RZ/V2H-RDK, keep the same USB cable connected to the same host USB port to help avoid re-enumeration or reconnection issues during flashing or debugging.
 
 **Fastboot MMC Target**
 
