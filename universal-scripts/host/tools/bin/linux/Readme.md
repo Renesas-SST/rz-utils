@@ -10,7 +10,7 @@ They are used automatically when the build system detects a Linux host.
 | `bpgen`            | RZ/G2L, RZ/V2L, RZ/V2H           | Generates a boot parameter binary (`bl2_bp_<board>.bin`) used by Boot ROM to load BL2|
 | `fiptool`          | All                              | Creates and manipulates Firmware Image Packages (FIP) for ARM Trusted Firmware. Uses embedded RPATH (`$ORIGIN`) to automatically find bundled OpenSSL library. |
 
-**Note**: `$ORIGIN` is a special linker variable that represents the directory containing the executable. When `fiptool` is run, it looks for `libcrypto.so.1.1` in the same directory where the `fiptool` binary is located.
+**Note**: `$ORIGIN` is a special linker variable that represents the directory containing the executable. When `fiptool` is run, it looks for `libcrypto.so.3` in the same directory where the `fiptool` binary is located.
 
 ### Directory Structure
 
@@ -18,12 +18,12 @@ They are used automatically when the build system detects a Linux host.
 linux/
 ├── bpgen                    # Boot parameter generator (static binary)
 ├── fiptool                  # FIP tool binary (with RPATH=$ORIGIN)
-├── libcrypto.so.1.1         # OpenSSL 1.1 crypto library (bundled)
-├── OPENSSL_LICENSE.txt      # OpenSSL license
+├── libcrypto.so.3           # OpenSSL 3.x crypto library (bundled)
+├── OPENSSL_LICENSE.txt      # OpenSSL license (Apache 2.0)
 └── Readme.md
 ```
 
-**Note**: The `fiptool` binary has embedded RPATH (`$ORIGIN`) which automatically loads the bundled `libcrypto.so.1.1` from the same directory. No system OpenSSL installation or environment variables required.
+**Note**: The `fiptool` binary has embedded RPATH (`$ORIGIN`) which automatically loads the bundled `libcrypto.so.3` from the same directory. No system OpenSSL installation or environment variables required.
 
 ## Building from Source
 
