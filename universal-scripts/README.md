@@ -12,7 +12,7 @@ universal-scripts/
 │       │   ├── linux
 │       │   │   ├── bpgen
 │       │   │   ├── fiptool
-│       │   │   ├── libcrypto.so.1.1
+│       │   │   ├── libcrypto.so.3
 │       │   │   ├── OPENSSL_LICENSE.txt
 │       │   │   └── Readme.md
 │       │   ├── Readme.md
