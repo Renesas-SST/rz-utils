@@ -40,7 +40,12 @@ cp /path/to/your/bootloader/file/fip-rzg2l-sbc.srec /path/to/universal-scripts/t
 cp /path/to/your/bootloader/file/rzg2l-sbc-platform-settings.bin /path/to/universal-scripts/target/images/
 ```
 
-**2. Connect debug serial port to Host PC, then change switches to enter SCIF download mode**
+**2. Hardware connection:**
+
+Depending on the type of IPL flashing, set up the corresponding hardware connection:
+
+- xSPI/eMMC: Connect the debug serial port to the host PC, then change the switches to enter SCIF download mode.
+- eSD: Connect the USB SD card reader to the host PC.
 
 **3. Run the script**
 
@@ -78,13 +83,27 @@ Ensure these files are present in the current directory before executing the scr
 If you want to specify different file paths or change the serial port settings or images file, you can pass the arguments as shown below:
 
 - **--board_name**: Board name to flash bootloader.
-- **--flash_method**: Flash method to use (xspi or emmc).
+- **--flash_method**: Flash method to use (`xspi`, `emmc`, or `esd`). When `esd` is selected the script writes directly to an SD card reader using `dd` and no serial connection is required.
 - **--serial_port**: Serial port to use for communication with the board.
 - **--serial_port_baud**: Baud rate for the serial port (must be `115200`).
 - **--image_writer**: Path to the Flash Writer image.
 - **--image_bl2**: Path to the BL2 image.
+- **--image_bl2_esd**: Path to the BL2 eSD image.
 - **--image_fip**: Path to the FIP image.
 - **--image_bid**: Path to the board identification image.
+- **--esd_device**: Raw device path of the SD card (`esd` method only).
+
+**eSD flashing**
+
+In eSD flashing, the script writes directly to an SD card reader using `dd` and no serial connection is required.
+
+When the eSD method is selected the script will:
+
+- Use the `--esd_device` argument to determine which SD card to write and run `dd` four times to program BL2 boot partition, BL2, board identification, and FIP images at the required sector offsets defined in `boards_flash_config.toml`.
+- Require every image passed to `--image_bl2`, `--image_bl2_esd`, `--image_bid`, and `--image_fip` to be in `.bin` format.
+- Attempt to flush cached data (via `conv=fsync` and `sync`) and eject the media on Linux hosts once flashing completes.
+
+Ensure the SD card is not mounted before starting the process. On Linux the default device name is typically `/dev/sdX`; on Windows you can provide a raw device path such as `E:` when prompted.
 
 Example Custom Command
 

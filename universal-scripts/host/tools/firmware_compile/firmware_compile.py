@@ -135,7 +135,7 @@ class FirmwareBuilder:
 		self.soc = (args.soc or self.boards_data[self.board]["soc"] or "g2l").lower()
 		self.method = (args.method or self.boards_data[self.board]["ipl_flash_method"] or "xspi").lower()
 
-		default_bl2   = IMG_DIR / "atf"    / "bl2-rz-cmn.bin"
+		default_bl2   = IMG_DIR / "atf"    / f"bl2-{self.method}-rz-cmn.bin"
 		default_bl31  = IMG_DIR / "atf"    / "bl31-rz-cmn.bin"
 		default_atf_fdts   = [IMG_DIR / "atf"    / "fdts" / f"{self.boards_data[self.board]['atf_fdts']}"]
 		default_uboot_dtbs = [IMG_DIR / "u-boot" / "dtbs" / f"{self.boards_data[self.board]['uboot_dtb']}"]
@@ -272,6 +272,10 @@ class FirmwareBuilder:
 		shutil.copy2(self.bl2_bp, self.bl2_bp_esd)
 		with open(self.bl2_bp, "ab") as out_f, open(self.bl2_out, "rb") as in_f:
 			shutil.copyfileobj(in_f, out_f)
+		if self.method == "esd":
+			print("[build] skipping BL2 boot parameter SREC for eSD method")
+			return
+
 		print(f"[build] objcopy -> {self.bl2_bp_srec.name} (VMA {self.bl2_bp_vma})")
 		subprocess.check_call([str(self.tools.objcopy),
 							"-I","binary","-O","srec",
@@ -300,6 +304,10 @@ class FirmwareBuilder:
 			cmd += ["--soc-fw", str(self.bl31)]
 		cmd += ["--nt-fw", str(self.uboot_withdtb), str(self.fip_bin)]
 		subprocess.check_call(cmd)
+		if self.method == "esd":
+			print("[build] skipping FIP SREC for eSD method")
+			return
+
 		print(f"[build] objcopy -> {self.fip_srec.name} (VMA {self.fip_vma})")
 		subprocess.check_call([str(self.tools.objcopy),
 							"-I","binary","-O","srec",
@@ -313,15 +321,17 @@ class FirmwareBuilder:
 		self.step_uboot_with_dtbs()
 		self.step_fip_and_srec()
 		print("\n=== Artifacts ===")
-		for k, v in {
+		artifacts = {
 			"bl2_output": self.bl2_out,
 			"bl2_bp": self.bl2_bp,
 			"bl2_bp_esd": self.bl2_bp_esd,
-			"bl2_bp_srec": self.bl2_bp_srec,
 			"u_boot": self.uboot_withdtb,
 			"fip_bin": self.fip_bin,
-			"fip_srec": self.fip_srec,
-		}.items():
+		}
+		if self.method != "esd":
+			artifacts["bl2_bp_srec"] = self.bl2_bp_srec
+			artifacts["fip_srec"] = self.fip_srec
+		for k, v in artifacts.items():
 			print(f"{k:12s} -> {v}")
 
 # ---------- CLI ----------
@@ -331,7 +341,7 @@ def parse_args(argv=None) -> argparse.Namespace:
 	p.add_argument("--board", default="rzg2l-sbc")
 	p.add_argument("--soc", choices=["g2l", "v2l", "v2h"],
 				help="Target SoC family")
-	p.add_argument("--method", choices=["xspi","emmc"],
+	p.add_argument("--method", choices=['emmc', 'xspi', 'esd'],
 				help="Which flash method's VMA rules to use (default: xspi)")
 
 	p.add_argument("--bl2")
