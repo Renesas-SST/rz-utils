@@ -293,7 +293,7 @@ class FirmwareBuilder:
 		cat_files(self.uboot_withdtb, self.ubnd, *dtbs)
 
 	def step_fip_and_srec(self):
-		"""Generate FIP image (BL31+U-Boot), then convert to SREC with VMA."""
+		"""Generate FIP image (BL31+U-Boot[+OP-TEE]), then convert to SREC with VMA."""
 		print(f"[build] FIP -> {self.fip_bin.name}")
 		if not self.bl31.exists():
 			raise FileNotFoundError(f"BL31 missing: {self.bl31}")
@@ -302,6 +302,10 @@ class FirmwareBuilder:
 			cmd += ["--tb-fw", str(self.bl31)]
 		else:
 			cmd += ["--soc-fw", str(self.bl31)]
+		tee_bin = IMG_DIR / "atf" / "tee-rz-cmn.bin"
+		if tee_bin.exists():
+			print(f"[build] OP-TEE BL32 -> {tee_bin.name} included in FIP")
+			cmd += ["--tos-fw", str(tee_bin)]
 		cmd += ["--nt-fw", str(self.uboot_withdtb), str(self.fip_bin)]
 		subprocess.check_call(cmd)
 		if self.method == "esd":
