@@ -302,10 +302,13 @@ class FirmwareBuilder:
 			cmd += ["--tb-fw", str(self.bl31)]
 		else:
 			cmd += ["--soc-fw", str(self.bl31)]
-		tee_bin = IMG_DIR / "atf" / "tee-rz-cmn.bin"
-		if tee_bin.exists():
+		tee_name = self.boards_data[self.board].get("tee")
+		tee_bin = IMG_DIR / "atf" / tee_name if tee_name else None
+		if tee_bin and tee_bin.exists():
 			print(f"[build] OP-TEE BL32 -> {tee_bin.name} included in FIP")
 			cmd += ["--tos-fw", str(tee_bin)]
+		elif tee_name:
+			print(f"[warn] tee binary not found at {tee_bin}, skipping --tos-fw")
 		cmd += ["--nt-fw", str(self.uboot_withdtb), str(self.fip_bin)]
 		subprocess.check_call(cmd)
 		if self.method == "esd":
