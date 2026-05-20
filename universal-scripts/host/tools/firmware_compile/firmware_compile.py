@@ -33,7 +33,20 @@ import json
 
 # ---------- repo roots / dirs ----------
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[2] if HERE.name == "firmware_compile" and HERE.parent.name == "tools" else HERE
+
+def _find_repo_root(start: Path) -> Path:
+	"""Walk up from script location to find the repo root (dir containing target/ and host/)."""
+	for p in [start, *start.parents]:
+		if (p / "target" / "images").exists() and (p / "host" / "tools").exists():
+			return p
+	# Fallback: use old heuristic
+	if start.name == "firmware_compile" and start.parent.name == "tools":
+		return start.parents[2]
+	if start.parent.name == "tools":
+		return start.parents[1]
+	return start
+
+REPO = _find_repo_root(HERE)
 
 BIN_DIRS = [
 	REPO / "tools" / "bin",
