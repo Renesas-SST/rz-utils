@@ -23,9 +23,10 @@ Option:
             Build for U-Boot
             <sub_command>:
                 - clean
-                - disclean
+                - distclean
                 - defconfig
                 - image
+                - flash
                 - all
 
         3. atf

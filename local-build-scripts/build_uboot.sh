@@ -22,11 +22,11 @@ uboot_setup() {
 
 	case ${PLATFORM} in
 		'RZ-CMN')
-			UBOOT_DEFCONFIG="rz-cmn_defconfig"
+			UBOOT_DEFCONFIG="r8a779g3_sparrowhawk_defconfig"
 			;;
 		*)
-			echo "Warning: Platform '${PLATFORM}' not recognised or do not have specific defconfig for this platform. Falling back to 'rz-cmn_defconfig'." >&2
-			UBOOT_DEFCONFIG="rz-cmn_defconfig"
+			echo "Warning: Platform '${PLATFORM}' not recognised or do not have specific defconfig for this platform. Falling back to 'r8a779g3_sparrowhawk_defconfig'." >&2
+			UBOOT_DEFCONFIG="r8a779g3_sparrowhawk_defconfig"
 			;;
 	esac
 }
@@ -40,6 +40,11 @@ mk_full_image() {
 	uboot_setup
 	make "${UBOOT_DEFCONFIG}"
 	make -j"$(nproc)"
+}
+
+mk_flash() {
+	uboot_setup
+	make flash.bin
 }
 
 mk_clean() {
@@ -71,6 +76,9 @@ case ${1} in
 		;;
 	'image')
 		mk_image
+		;;
+	'flash')
+		mk_flash
 		;;
 	'all')
 		mk_full_image
