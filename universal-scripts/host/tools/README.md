@@ -183,6 +183,7 @@ The `flash_images.json` file contains predefined image mappings for supported de
 - **bl2**: BL2 image name
 - **board_identification**: Board identification image name
 - **fip**: FIP image name
+- **tee** *(optional)*: OP-TEE BL32 binary name — if present and the binary exists, it is included in the FIP via `fiptool --tos-fw`
 - **atf_fdts**: FCONF device tree name
 - **uboot_dtb**: U-boot device tree name
 - **flash_writer**: Flash Writer image name
@@ -209,6 +210,8 @@ This table below lists the available options (and sensible defaults) for `ipl_fl
 
 ## Field Reference
 
+- **`tee`** *(optional)*
+  OP-TEE BL32 binary filename. If set and the binary exists under `target/images/atf/`, it is passed to `fiptool` as `--tos-fw` when building the FIP. If the binary is missing, a warning is printed and the field is ignored.
 - **`ipl_flash_method`**
   Defines where the **IPL/BL2** image is flashed:
   - `xspi` — xSPI flash for RZ/V2H, QSPI for RZV2L/RZG2L
@@ -227,6 +230,7 @@ Example of a sample board configuration in JSON:
     "bl2": "bl2_bp_rzg2l-sbc.srec",
     "board_identification": "rzg2l-sbc-platform-settings.bin",
     "fip": "fip_rzg2l-sbc.srec",
+    "tee": "tee-rz-cmn-g2l.bin",
     "atf_fdts": "rzg2l-sbc.dtb",
     "uboot_dtb": "rzg2l-sbc.dtb",
     "flash_writer": "Flash_Writer_SCIF_rzg2l-sbc.mot",
