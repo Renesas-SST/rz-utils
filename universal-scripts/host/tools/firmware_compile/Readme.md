@@ -18,7 +18,7 @@ The script supports multiple boards and flash methods without hardcoding address
 - Generates **BL2 + DTB** combined binary.
 - Creates **Boot Parameter + BL2** binary and `.srec` with correct VMA offset.
 - Builds **U-Boot (nodtb) + DTB** combined binary.
-- Generates **FIP** binary and `.srec` with correct VMA offset.
+- Generates **FIP** binary and `.srec` with correct VMA offset (optionally includes **OP-TEE BL32** if configured).
 - Supports both **Windows** and **Linux** build hosts.
 
 ---
@@ -59,7 +59,7 @@ This will:
 1. Build bl2_&lt;board&gt;.bin (BL2 + board DTB)
 2. Build bl2_bp_&lt;board&gt;.bin and .srec
 3. Build u-boot_&lt;board&gt;.bin (U-Boot + board DTB)
-4. Build fip_&lt;board&gt;.bin and .srec
+4. Build fip_&lt;board&gt;.bin and .srec (includes OP-TEE BL32 if `tee` field is set in `flash_images.json` and the binary is present)
 
 ## CLI Options
 
