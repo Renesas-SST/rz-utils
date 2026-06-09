@@ -24,6 +24,12 @@ This directory contains build scripts for all software stacks of the RZ Board Su
 
 A collection of useful tools for RZ platforms.
 
+### combo-firmware
+
+Multi-SoC (G2L/V2L + V2H) unified bootloader + 9-rootfs SD card image. Self-contained module that builds, flashes, and packages combo firmware. Uses bpgen/fiptool from `universal-scripts/host/tools/bin/linux/` via relative path.
+
+See `combo-firmware/README.md` for usage.
+
 ### universal-scripts
 
 Scripts for flashing RZ images, compatible with both Windows and Linux.

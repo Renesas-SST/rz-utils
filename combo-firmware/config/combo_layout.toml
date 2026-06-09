@@ -1,0 +1,43 @@
+# SD card bootloader layout sector map.
+# Each entry defines the sector offset and content for the combo firmware.
+[sectors]
+bp_g2l    = 1        # G2L Boot Parameter (512 B, 0x55AA @510)
+bp_v2h    = 2        # V2H Boot Parameters (6 sectors: 2-7)
+bl2_g2l   = 8        # G2L BL2 (PIE, dest=0x00012000)
+bl2_v2h   = 512      # V2H BL2 (PIE, dest=0x08103000)
+
+# G2L/V2L board packages (BID @ +0, DTB @ +4 sectors)
+bid_g2l_sbc  = 1024
+dtb_g2l_sbc  = 1028
+bid_g2l_evk  = 1088
+dtb_g2l_evk  = 1092
+bid_v2l_evk  = 1152
+dtb_v2l_evk  = 1156
+bid_rsg2l100 = 1216
+dtb_rsg2l100 = 1220
+
+fip_g2l = 1280      # G2L FIP (BL31 + U-Boot, max ~2048 sectors)
+fip_v2h = 3328      # V2H FIP (BL31 + U-Boot, max ~2048 sectors)
+
+# V2H board packages
+bid_v2h_sbc = 5376
+dtb_v2h_sbc = 5380
+bid_v2h_evk = 5888
+dtb_v2h_evk = 5892
+bid_v2h_rdk = 6400
+dtb_v2h_rdk = 6404
+
+# FAT partition (rootfs + DATA) must start at or after this sector
+partition_start = 7168
+
+[boards.g2l]
+name = "G2L/V2L (G2L-SBC, G2L-EVK, V2L-EVK, RS-G2L100)"
+discriminator = "0x0000"
+bl2_sector = 8
+fip_sector = 1280
+
+[boards.v2h]
+name = "V2H (V2H-SBC, V2H-EVK, V2H-RDK)"
+discriminator = "0xFFFF"
+bl2_sector = 512
+fip_sector = 3328
