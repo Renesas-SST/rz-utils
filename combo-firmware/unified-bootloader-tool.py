@@ -385,6 +385,43 @@ def edit_wic_list(wics, active, wic_dir):
     return wics, active
 
 
+def show_help():
+    heading("HELP — When to use each option")
+    helps = [
+        ("1. Build ATF + U-Boot",
+         "First run or after source changes.\n"
+         "  Builds BL2, BL31 (G2L+V2H), and u-boot.bin."),
+        ("2. Generate bootloader artifacts",
+         "After build (opt 1) or with existing binaries.\n"
+         "  Runs bpgen → Boot Parameter, gen_bid_blob → Board IDs, fiptool → FIP."),
+        ("3. Package combo .img.gz",
+         "Create a full distributable image.\n"
+         "  Builds 9-rootfs multi-partition image + bootloader → .img.gz.\n"
+         "  Deploy later via option 5 or gunzip+dd manually."),
+        ("4. Flash bootloader to SD card",
+         "SD card already has rootfs partitions.\n"
+         "  Writes BP/BL2/BID/DTB/FIP to raw sectors 1-6911.\n"
+         "  Leaves partition table and rootfs intact."),
+        ("5. Deploy full combo image",
+         "Create a new multi-root SD card from scratch.\n"
+         "  gunzip + dd combo .img.gz to device.\n"
+         "  Overwrites everything — easiest, one command."),
+        ("6. Configure paths",
+         "Change ATF/U-Boot/WIC directories."),
+        ("7. Customize WIC list",
+         "Select which rootfs WICs to include.\n"
+         "  Toggle on/off (opt 3 packages only enabled ones)."),
+        ("8. Quick test",
+         "Fast single-board test — 1 WIC + bootloader.\n"
+         "  Doesn't need pre-built .img.gz.\n"
+         "  Good for development iteration."),
+    ]
+    for title, desc in helps:
+        print(f"\n  {title}")
+        for line in desc.split('\n'):
+            print(f"    {line}")
+
+
 def interactive_menu(atf_dir, uboot_dir, wic_dir, wics, active):
     while True:
         n_enabled = sum(active)
@@ -404,6 +441,7 @@ def interactive_menu(atf_dir, uboot_dir, wic_dir, wics, active):
         print("  6. Configure paths")
         print("  7. Customize WIC list")
         print("  8. Quick test — 1 WIC + bootloader to SD")
+        print("  h. Help — when to use each option")
         print("  0. Exit")
         print(f"{'=' * SEP_WIDTH}")
 
@@ -445,6 +483,8 @@ def interactive_menu(atf_dir, uboot_dir, wic_dir, wics, active):
             dev = pick_sd_card()
             if dev:
                 run_quick_test(wic, dev)
+        elif choice in ('h', 'H', 'help', '?'):
+            show_help()
         else:
             print("  Invalid choice.")
 

@@ -193,6 +193,11 @@ All labels:
 ```bash
 setenv root_part 9; boot
 ```
+Note: `${mmcdev}` is set by U-Boot board init (V2H→0, V2L→1). If not set, add `mmcdev=0` (or `mmcdev=1`) to uEnv.txt manually.
+
+## Writable Layer (bind-mount)
+
+Rootfs read-only. `overlay-data.service` bind-mounts `/home` and `/var/lib` to DATA partition at boot.
 
 ## Quick Test (1 WIC + Bootloader)
 

@@ -305,7 +305,11 @@ package_combo_image() {
     echo "  Size:   $IMG_SIZE"
     echo ""
     echo "Compressing..."
-    gzip -f "$IMG_PATH"
+    if command -v pigz &> /dev/null; then
+        pigz -f "$IMG_PATH"
+    else
+        gzip -1 -f "$IMG_PATH"
+    fi
     echo "  Compressed: ${IMG_PATH}.gz ($(du -h "${IMG_PATH}.gz" | cut -f1))"
 }
 
