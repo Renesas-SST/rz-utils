@@ -133,6 +133,8 @@ class FirmwareBuilder:
 
 		# Defaults derived from target/images + board
 		self.soc = (args.soc or self.boards_data[self.board]["soc"] or "g2l").lower()
+		# V4H uses the same boot-parameter format as V2H (R-Car Gen4 AA55FFFF record)
+		self.bpgen_soc = "v2h" if self.soc == "v4h" else self.soc
 		self.method = (args.method or self.boards_data[self.board]["ipl_flash_method"] or "xspi").lower()
 
 		default_bl2   = IMG_DIR / "atf"    / f"bl2-{self.method}-rz-cmn.bin"
@@ -263,9 +265,9 @@ class FirmwareBuilder:
 	def step_bootparameter_and_srec(self):
 		"""Generate boot parameter, append BL2+ATF-FDTs, and convert to SREC."""
 		print(f"[build] bootparameter -> {self.bl2_bp.name}")
-		bp_cmd = [str(self.tools.bootparameter), "--soc", self.soc,
+		bp_cmd = [str(self.tools.bootparameter), "--soc", self.bpgen_soc,
 				"--image", str(self.bl2_out), "-o", str(self.bl2_bp)]
-		if self.soc == "v2h":
+		if self.bpgen_soc == "v2h":
 			bp_cmd += ["--mode", self.method, "--dest", self.bl2_dest]
 
 		subprocess.check_call(bp_cmd)
@@ -346,7 +348,7 @@ def parse_args(argv=None) -> argparse.Namespace:
 	"""Parse command-line arguments for firmware_build.py."""
 	p = argparse.ArgumentParser(description="Build BL2/BL2_BP/U-Boot/FIP artifacts (VMAs from TOML per board/method).")
 	p.add_argument("--board", default="rzg2l-sbc")
-	p.add_argument("--soc", choices=["g2l", "v2l", "v2h"],
+	p.add_argument("--soc", choices=["g2l", "v2l", "v2h", "v4h"],
 				help="Target SoC family")
 	p.add_argument("--method", choices=['emmc', 'xspi', 'esd'],
 				help="Which flash method's VMA rules to use (default: xspi)")
