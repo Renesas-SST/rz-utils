@@ -175,7 +175,7 @@ After=systemd-fsck-root.service
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c 'DATA_DEV=$$(findmnt -n -o SOURCE / | sed "s/p[0-9][0-9]*$$/p14/"); mount "$$DATA_DEV" /data'
+ExecStart=/bin/sh -c 'BASE_DEV=$$(echo "$$(findmnt -n -o SOURCE /)" | sed "s/p[0-9]*$$//"); mount "$$(ls "$$BASE_DEV"p* 2>/dev/null | sort -t"p" -k2 -n | tail -1)" /data'
 ExecStart=/bin/mkdir -p /data/pPART/home /data/pPART/var_lib
 ExecStart=/bin/sh -c '/usr/bin/test -z "$(/bin/ls -A /data/pPART/home 2>/dev/null)" && /bin/cp -a /home/. /data/pPART/home/ 2>/dev/null || true'
 ExecStart=/bin/sh -c '/usr/bin/test -z "$(/bin/ls -A /data/pPART/var_lib 2>/dev/null)" && /bin/cp -a /var/lib/. /data/pPART/var_lib/ 2>/dev/null || true'
