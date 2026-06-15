@@ -235,11 +235,13 @@ Type=oneshot
 ExecStart=/bin/sh -c 'mount -o remount,rw / 2>/dev/null; for i in 1 2 3 4 5; do mount -o remount,rw / 2>/dev/null && break; sleep 0.2; done'
 ExecStart=/bin/mkdir -p /data
 ExecStart=/bin/sh -c 'B=$$(echo "$$(findmnt -n -o SOURCE /)" | sed "s/p[0-9]*$$//"); mount $$(ls "$$B"p* 2>/dev/null | sort -t"p" -k2 -n | tail -1) /data 2>&1 || (echo "mount /data failed, trying direct" && mount LABEL=DATA /data)'
-ExecStart=/bin/mkdir -p /data/home /data/var_lib
+ExecStart=/bin/mkdir -p /data/home /data/var_lib /data/var_cache
 ExecStart=/bin/sh -c '/usr/bin/test -z "$$(/bin/ls -A /data/home 2>/dev/null)" && /bin/cp -a /home/. /data/home/ 2>/dev/null || true'
 ExecStart=/bin/sh -c '/usr/bin/test -z "$$(/bin/ls -A /data/var_lib 2>/dev/null)" && /bin/cp -a /var/lib/. /data/var_lib/ 2>/dev/null || true'
+ExecStart=/bin/sh -c '/usr/bin/test -z "$$(/bin/ls -A /data/var_cache 2>/dev/null)" && /bin/cp -a /var/cache/. /data/var_cache/ 2>/dev/null || true'
 ExecStart=/bin/mount --bind /data/home /home
 ExecStart=/bin/mount --bind /data/var_lib /var/lib
+ExecStart=/bin/mount --bind /data/var_cache /var/cache
 RemainAfterExit=yes
 
 [Install]
