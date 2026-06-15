@@ -202,14 +202,34 @@ EOF
 sudo umount "$BROOT"
 rm -rf "$BROOT"
 
-# Mount DATA partition via fstab (rw rootfs, no overlay-data.service needed)
+# Write data-mount.service (mounts DATA, bind-mounts /home + /var/lib for persistence)
 RROOT=$(mktemp -d)
 for i in "${!LABELS[@]}"; do
   PART=$((FIRST_ROOT + i))
   sudo mount "${SD}${P}${PART}" "$RROOT"
-  sudo mkdir -p "$RROOT/data"
-  echo "# DATA partition (shared storage)" | sudo tee -a "$RROOT/etc/fstab" > /dev/null
-  echo "/dev/mmcblk\${mmcdev}p${PART_DATA} /data ext4 defaults,noatime 0 2" | sudo tee -a "$RROOT/etc/fstab" > /dev/null
+  sudo mkdir -p "$RROOT/etc/systemd/system"
+  cat << 'SVC' | sudo tee "$RROOT/etc/systemd/system/data-mount.service" > /dev/null
+[Unit]
+Description=Mount DATA partition + persist /home /var/lib
+DefaultDependencies=no
+Before=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'B=$$(echo "$$(findmnt -n -o SOURCE /)" | sed "s/p[0-9]*$$//"); mount $$(ls "$$B"p* 2>/dev/null | sort -t"p" -k2 -n | tail -1) /data'
+ExecStart=/bin/mkdir -p /data/home /data/var_lib
+ExecStart=/bin/sh -c '/usr/bin/test -z "$$(/bin/ls -A /data/home 2>/dev/null)" && /bin/cp -a /home/. /data/home/ 2>/dev/null || true'
+ExecStart=/bin/sh -c '/usr/bin/test -z "$$(/bin/ls -A /data/var_lib 2>/dev/null)" && /bin/cp -a /var/lib/. /data/var_lib/ 2>/dev/null || true'
+ExecStart=/bin/mount --bind /data/home /home
+ExecStart=/bin/mount --bind /data/var_lib /var/lib
+RemainAfterExit=yes
+
+[Install]
+WantedBy=local-fs.target
+SVC
+  sudo mkdir -p "$RROOT/etc/systemd/system/local-fs.target.wants"
+  sudo ln -sf /etc/systemd/system/data-mount.service \
+      "$RROOT/etc/systemd/system/local-fs.target.wants/"
   sudo umount "$RROOT"
 done
 rm -rf "$RROOT"
