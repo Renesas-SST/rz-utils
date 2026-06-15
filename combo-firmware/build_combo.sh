@@ -25,6 +25,7 @@
 #   ./build_combo.sh --flash /dev/sdX                  # flash bootloader only
 #   ./build_combo.sh --build --flash /dev/sdX           # build + flash
 #   ./build_combo.sh --package-image                   # .img.gz with rootfs+bootloader
+#   NO_COMPRESS=1 ./build_combo.sh --package-image     # skip gzip (save time for testing)
 #   WIC_DIR=/path ./build_combo.sh --package-image     # custom WIC path
 #
 # Env vars:
@@ -304,6 +305,7 @@ package_combo_image() {
     echo "  Time:   $((DURATION / 60))m $((DURATION % 60))s"
     echo "  Size:   $IMG_SIZE"
     echo ""
+    if [[ -z "${NO_COMPRESS:-}" ]]; then
     echo "Compressing..."
     if command -v pigz &> /dev/null; then
         pigz -f "$IMG_PATH"
@@ -311,6 +313,7 @@ package_combo_image() {
         gzip -1 -f "$IMG_PATH"
     fi
     echo "  Compressed: ${IMG_PATH}.gz ($(du -h "${IMG_PATH}.gz" | cut -f1))"
+fi
 }
 
 if [[ -n "$FLASH_DEV" ]]; then
