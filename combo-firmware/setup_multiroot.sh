@@ -155,12 +155,14 @@ for i in "${!WICS[@]}"; do
   sudo cp -a "$SROOT/." "$DROOT/"
   sudo umount "$DROOT"
   sudo umount "$SROOT"
+  # fsck to clear needs_recovery flag (prevents ro mount on next boot)
+  sudo fsck -f "${SD}${P}${PART}" 2>/dev/null || true
   echo "done"
 done
 rm -rf "$SROOT" "$DROOT"
 
 echo ""
-echo "=== 6/6 Setup uEnv.txt ==="
+echo "=== 6/6 Setup uEnv.txt + fstab ==="
 
 BROOT=$(mktemp -d)
 sudo mount "${SD}${P}${PART_BOOT}" "$BROOT"
@@ -200,6 +202,18 @@ EOF
 sudo umount "$BROOT"
 rm -rf "$BROOT"
 
+# Mount DATA partition via fstab (rw rootfs, no overlay-data.service needed)
+RROOT=$(mktemp -d)
+for i in "${!LABELS[@]}"; do
+  PART=$((FIRST_ROOT + i))
+  sudo mount "${SD}${P}${PART}" "$RROOT"
+  sudo mkdir -p "$RROOT/data"
+  echo "# DATA partition (shared storage)" | sudo tee -a "$RROOT/etc/fstab" > /dev/null
+  echo "/dev/mmcblk\${mmcdev}p${PART_DATA} /data ext4 defaults,noatime 0 2" | sudo tee -a "$RROOT/etc/fstab" > /dev/null
+  sudo umount "$RROOT"
+done
+rm -rf "$RROOT"
+
 echo ""
 echo "====== DONE ====="
 lsblk "$SD" -o NAME,SIZE,FSTYPE,LABEL
@@ -209,4 +223,4 @@ echo "  run weston                     # boot by label (nhanh nhat)"
 echo "  setenv root_part 9; boot       # boot by partition (override)"
 echo "  ${ROOT_MAP_COMMENT}"
 echo ""
-echo "  DATA ($SD$PART_DATA): /data/pN/home  /data/pN/var_lib"
+echo "  DATA ($SD$PART_DATA): /data (tu dong mount qua fstab)"
