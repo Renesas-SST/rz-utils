@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup_multiroot.sh — 9 rootfs (ro) + 1 DATA (rw) trên 1 thẻ SD
+# setup_multiroot.sh — 9 rootfs (rw) + 1 DATA trên 1 thẻ SD
 # Usage: sudo WIC_DIR=/path/to/wics bash setup_multiroot.sh /dev/sdX [p]
 #   [p] = partition prefix: "p" cho loop0p1, "" cho sdb1 (auto-detect nếu bỏ)
 set -euo pipefail
@@ -160,41 +160,7 @@ done
 rm -rf "$SROOT" "$DROOT"
 
 echo ""
-echo "=== 6/6 Setup systemd service + uEnv.txt ==="
-RROOT=$(mktemp -d)
-for i in "${!LABELS[@]}"; do
-  PART=$((FIRST_ROOT + i))
-  sudo mount "${SD}${P}${PART}" "$RROOT"
-  sudo mkdir -p "$RROOT/etc/systemd/system"
-  cat << 'SVC' | sudo tee "$RROOT/etc/systemd/system/overlay-data.service" > /dev/null
-[Unit]
-Description=Mount DATA + bind-mount writable dirs for read-only root
-DefaultDependencies=no
-Before=local-fs.target
-After=systemd-fsck-root.service
-
-[Service]
-Type=oneshot
-ExecStart=/bin/sh -c 'BASE_DEV=$$(echo "$$(findmnt -n -o SOURCE /)" | sed "s/p[0-9]*$$//"); mount "$$(ls "$$BASE_DEV"p* 2>/dev/null | sort -t"p" -k2 -n | tail -1)" /data'
-ExecStart=/bin/mkdir -p /data/pPART/home /data/pPART/var_lib
-ExecStart=/bin/sh -c '/usr/bin/test -z "$(/bin/ls -A /data/pPART/home 2>/dev/null)" && /bin/cp -a /home/. /data/pPART/home/ 2>/dev/null || true'
-ExecStart=/bin/sh -c '/usr/bin/test -z "$(/bin/ls -A /data/pPART/var_lib 2>/dev/null)" && /bin/cp -a /var/lib/. /data/pPART/var_lib/ 2>/dev/null || true'
-ExecStart=/bin/mount --bind /data/pPART/home /home
-ExecStart=/bin/mount --bind /data/pPART/var_lib /var/lib
-RemainAfterExit=yes
-
-[Install]
-WantedBy=local-fs.target
-SVC
-  sudo sed -i "s/pPART/p${PART}/g" "$RROOT/etc/systemd/system/overlay-data.service"
-  sudo mkdir -p "$RROOT/etc/systemd/system/local-fs.target.wants"
-  sudo ln -sf /etc/systemd/system/overlay-data.service \
-      "$RROOT/etc/systemd/system/local-fs.target.wants/"
-  sudo mkdir -p "$RROOT/data"
-  sudo umount "$RROOT"
-  echo -n "  ${LABELS[$i]}... done"$'\n'
-done
-rm -rf "$RROOT"
+echo "=== 6/6 Setup uEnv.txt ==="
 
 BROOT=$(mktemp -d)
 sudo mount "${SD}${P}${PART_BOOT}" "$BROOT"
@@ -225,7 +191,7 @@ cat << EOF | sudo tee "$BROOT/uEnv.txt" > /dev/null
 #   e.g.  run weston   (run bsp, run minimal, ...)
 ${BOOT_VARS}
 # Dung \${mmcdev} tu dong - V2H (0) -> mmcblk0, V2L (1) -> mmcblk1
-mmc_args=if test -z "\${root_part}"; then setenv root_part ${FIRST_ROOT}; fi; setenv bootargs ro rootwait earlycon root=/dev/mmcblk\${mmcdev}p\${root_part}
+mmc_args=if test -z "\${root_part}"; then setenv root_part ${FIRST_ROOT}; fi; setenv bootargs rootwait earlycon root=/dev/mmcblk\${mmcdev}p\${root_part}
 
 ${ROOT_MAP_COMMENT}
 
