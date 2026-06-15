@@ -206,10 +206,22 @@ rm -rf "$BROOT"
 RROOT=$(mktemp -d)
 for i in "${!LABELS[@]}"; do
   PART=$((FIRST_ROOT + i))
+  LABEL="${LABELS[$i]}"
   sudo mount "${SD}${P}${PART}" "$RROOT"
   sudo mkdir -p "$RROOT/data"
   # Fix root HOME if WIC set it to /home/root (should be /root)
   sudo sed -i 's|^root:[^:]*:[^:]*:[^:]*:[^:]*:/home/root:|root:x:0:0:root:/root:|' "$RROOT/etc/passwd" 2>/dev/null || true
+  # Create /home/weston (for weston.service WorkingDirectory) + /home/root
+  sudo mkdir -p "$RROOT/home/weston" "$RROOT/home/root"
+  # Copy test video to weston images (VID_01 test case)
+  if [[ "${BOOT_NAMES[$i]}" =~ weston|wayland ]]; then
+    VIDEO_SRC="$HOME/videos/renesas-bigideasforeveryspace.mp4"
+    [ ! -f "$VIDEO_SRC" ] && VIDEO_SRC="/home/son.nguyen-cong/videos/renesas-bigideasforeveryspace.mp4"
+    if [ -f "$VIDEO_SRC" ]; then
+      sudo cp "$VIDEO_SRC" "$RROOT/home/root/videoplayback.mp4"
+      echo "  $LABEL: video file copied"
+    fi
+  fi
   sudo mkdir -p "$RROOT/etc/systemd/system"
   cat << 'SVC' | sudo tee "$RROOT/etc/systemd/system/data-mount.service" > /dev/null
 [Unit]
