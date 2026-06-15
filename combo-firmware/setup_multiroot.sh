@@ -208,6 +208,8 @@ for i in "${!LABELS[@]}"; do
   PART=$((FIRST_ROOT + i))
   sudo mount "${SD}${P}${PART}" "$RROOT"
   sudo mkdir -p "$RROOT/data"
+  # Fix root HOME if WIC set it to /home/root (should be /root)
+  sudo sed -i 's|^root:[^:]*:[^:]*:[^:]*:[^:]*:/home/root:|root:x:0:0:root:/root:|' "$RROOT/etc/passwd" 2>/dev/null || true
   sudo mkdir -p "$RROOT/etc/systemd/system"
   cat << 'SVC' | sudo tee "$RROOT/etc/systemd/system/data-mount.service" > /dev/null
 [Unit]
