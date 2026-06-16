@@ -172,7 +172,7 @@ BOOT_VARS=""
 ROOT_MAP_COMMENT="# root_part map:"
 for i in "${!BOOT_NAMES[@]}"; do
   PART=$((FIRST_ROOT + i))
-  BOOT_VARS+="${BOOT_NAMES[$i]}=setenv root_part ${PART}; boot"$'\n'
+  BOOT_VARS+="${BOOT_NAMES[$i]}=setenv root_part ${PART}; run mmc_do_boot"$'\n'
   ROOT_MAP_COMMENT+="  ${PART}=${BOOT_NAMES[$i]}"
 done
 
