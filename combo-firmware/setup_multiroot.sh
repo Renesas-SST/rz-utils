@@ -213,6 +213,8 @@ for i in "${!LABELS[@]}"; do
   sudo sed -i 's|^root:[^:]*:[^:]*:[^:]*:[^:]*:/home/root:|root:x:0:0:root:/root:|' "$RROOT/etc/passwd" 2>/dev/null || true
   # Create /home/weston (for weston.service WorkingDirectory) + /home/root
   sudo mkdir -p "$RROOT/home/weston" "$RROOT/home/root"
+  # Ensure /root exists for video file (systemd may create, but safer to mkdir now)
+  sudo mkdir -p "$RROOT/root"
   # Copy test video to weston images (VID_01 test case)
   # NOTE: copy to /root/ (NOT /home/root/) because data-mount.service
   # bind-mounts /data/home → /home, masking rootfs /home/ on non-first boots.
