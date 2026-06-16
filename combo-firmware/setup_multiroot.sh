@@ -214,14 +214,18 @@ for i in "${!LABELS[@]}"; do
   # Create /home/weston (for weston.service WorkingDirectory) + /home/root
   sudo mkdir -p "$RROOT/home/weston" "$RROOT/home/root"
   # Copy test video to weston images (VID_01 test case)
+  # NOTE: copy to /root/ (NOT /home/root/) because data-mount.service
+  # bind-mounts /data/home → /home, masking rootfs /home/ on non-first boots.
   if [[ "${BOOT_NAMES[$i]}" =~ weston|wayland ]]; then
     VIDEO_SRC="$HOME/videos/renesas-bigideasforeveryspace.mp4"
     [ ! -f "$VIDEO_SRC" ] && VIDEO_SRC="/home/son.nguyen-cong/videos/renesas-bigideasforeveryspace.mp4"
     if [ -f "$VIDEO_SRC" ]; then
-      sudo cp "$VIDEO_SRC" "$RROOT/home/root/videoplayback.mp4"
-      echo "  $LABEL: video file copied"
+      sudo cp "$VIDEO_SRC" "$RROOT/root/videoplayback.mp4"
+      echo "  $LABEL: video file copied to /root/"
     fi
   fi
+  # Also copy v4l2-init.sh to /root/ if it exists at /home/root/ (WIC baked)
+  sudo cp "$RROOT/home/root/v4l2-init.sh" "$RROOT/root/v4l2-init.sh" 2>/dev/null || true
   sudo mkdir -p "$RROOT/etc/systemd/system"
   cat << 'SVC' | sudo tee "$RROOT/etc/systemd/system/data-mount.service" > /dev/null
 [Unit]
