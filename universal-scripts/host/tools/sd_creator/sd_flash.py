@@ -10,7 +10,6 @@ import glob
 from subprocess import Popen, PIPE, CalledProcessError
 import platform
 from serial.tools.list_ports import comports
-import json
 import sys
 if sys.version_info >= (3, 11):  # pragma: Python version >=3.11
     import tomllib
@@ -54,7 +53,7 @@ class SdFlashUtil:
 	# Setup CLI parser
 	def __setupArgumentParser(self, args):
 		# Create parser
-		self.__parser = argparse.ArgumentParser(description='Utility to flash WIC image on RZ Board.\n', epilog='Example:\n\t./sd_flash.py')
+		self.__parser = argparse.ArgumentParser(description='Utility to flash WIC image on RZ and R-Car boards.\n', epilog='Example:\n\t./sd_flash.py')
 
 		# Add arguments
 		# Board name
@@ -423,6 +422,11 @@ class SdFlashUtil:
 		self.__runSubprocessCommand(f"{fastboot_command} getvar version-bootloader")
 		self.__runSubprocessCommand(f"{fastboot_command} getvar version")
 		self.__runSubprocessCommand(f"{fastboot_command} flash mmc{mmcdev} {self.__args.rootfsImage}")
+		# `rawimg` is the standard target for every board, including
+		# Sparrow-Hawk. The matching U-Boot rawimg backend resolves the target
+		# from the runtime `mmcdev` environment variable and falls back to
+		# CONFIG_FASTBOOT_FLASH_MMC_DEV only when `mmcdev` is unset.
+		self.__runSubprocessCommand(f"{fastboot_command} flash rawimg {self.__args.rootfsImage}")
 
 	def __handle_otg_fastboot(self, mmcdev=None):
 		print('fastboot usb otg mode')
