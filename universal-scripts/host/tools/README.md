@@ -525,30 +525,44 @@ involved in loading, validating, or running it.**
 - **What rz-utils flashes:** the SPI-NOR loader (SA0/SPL + U-Boot FIT) and the
   WIC rootfs image, exactly as it does for every board. rz-utils treats both
   as opaque files.
-- **What makes OP-TEE run:** a Sparrow-Hawk-specific U-Boot build boots at
-  EL3 and exposes manual commands that load and verify BL31/OP-TEE before
-  handing off to BL31. Normal autoboot remains the non-secure Linux path.
-- **The resulting WIC contains the following V4H-only payloads.** On the FAT
-  boot partition (partition 1), the files are located in the partition root.
-  On the rootfs partition (partition 2), they are located under `/boot`.
+- **What makes BL31 run by default:** a Sparrow-Hawk-specific U-Boot build
+  always ships a BL31 at `/bl31-sparrow-hawk.bin` on the FAT boot partition
+  and `/boot/bl31-sparrow-hawk.bin` on the rootfs partition, one build per
+  image (`SPD=none` when `ENABLE_V4H_DIRECT_OPTEE=0`, `SPD=opteed` when
+  `ENABLE_V4H_DIRECT_OPTEE=1` — same file name either way). At boot,
+  U-Boot's `v4h_bl31_prepare` loads it automatically and hands off with a
+  BL31-only `tfa_prepare` — no manual steps, no OP-TEE payload, nothing for
+  rz-utils to flash or verify beyond the WIC it already writes. This
+  auto-load path is only correct for `ENABLE_V4H_DIRECT_OPTEE=0` builds; on
+  a direct-OP-TEE build, interrupt autoboot and use the manual sequence
+  below instead — letting autoboot run (default `BOOTDELAY=2s`) would hand
+  off the SPD=opteed BL31 without its OP-TEE payload.
+- **What makes OP-TEE run (`ENABLE_V4H_DIRECT_OPTEE=1` builds only):** the
+  same U-Boot build also exposes manual commands to load and verify OP-TEE
+  alongside BL31 before handing off. Normal autoboot remains the non-secure
+  Linux path; this flow only applies to images built with direct OP-TEE
+  enabled.
+- **With direct OP-TEE enabled, the WIC contains the following payloads.**
+  Both are staged on the FAT boot partition (partition 1) and the rootfs
+  partition's `/boot` (partition 2):
 
   | Partition 1 (FAT)             | Partition 2 (rootfs)               | Purpose                   |
-  | ----------------------------- | ---------------------------------- | ------------------------- |
+  | ----------------------------- | ----------------------------------- | ------------------------- |
   | `/bl31-sparrow-hawk.bin`    | `/boot/bl31-sparrow-hawk.bin`    | ARM Trusted Firmware BL31 |
   | `/tee-raw-sparrow-hawk.bin` | `/boot/tee-raw-sparrow-hawk.bin` | OP-TEE BL32 payload       |
 
   rz-utils does not build, stage, or check these files — Yocto owns them.
 
-**Direct U-Boot commands for manual verification:**
+**Direct U-Boot commands for manual OP-TEE verification (`ENABLE_V4H_DIRECT_OPTEE=1` builds only):**
 
 Load from the FAT boot partition:
 
 ```text
 fatload mmc 0:1 0x46400000 bl31-sparrow-hawk.bin
-crc32 -v 0x46400000 0x20040 af9584fe
+setexpr v4h_bl31_size ${filesize}
 fatload mmc 0:1 0x44100000 tee-raw-sparrow-hawk.bin
-crc32 -v 0x44100000 0x65cd0 82b95c35
-tfa_prepare 0x46400000 0x20040 0x44100000 0x65cd0
+setexpr v4h_tee_size ${filesize}
+tfa_prepare 0x46400000 ${v4h_bl31_size} 0x44100000 ${v4h_tee_size}
 run mmc_do_boot
 ```
 
@@ -556,20 +570,22 @@ Or load the same payloads from the rootfs partition:
 
 ```text
 ext4load mmc 0:2 0x46400000 /boot/bl31-sparrow-hawk.bin
-crc32 -v 0x46400000 0x20040 af9584fe
+setexpr v4h_bl31_size ${filesize}
 ext4load mmc 0:2 0x44100000 /boot/tee-raw-sparrow-hawk.bin
-crc32 -v 0x44100000 0x65cd0 82b95c35
-tfa_prepare 0x46400000 0x20040 0x44100000 0x65cd0
+setexpr v4h_tee_size ${filesize}
+tfa_prepare 0x46400000 ${v4h_bl31_size} 0x44100000 ${v4h_tee_size}
 run mmc_do_boot
 ```
 
 `mmc 0:1` is the FAT boot partition and `mmc 0:2` is the ext4 rootfs
-partition. Do not mix payload copies from different partitions in one handoff.
+partition. Do not mix payload copies from different partitions in one
+handoff. `${filesize}` is set by U-Boot after each `fatload`/`ext4load` —
+do not hardcode payload sizes, they change from build to build.
 `mmc_do_boot` loads Image and DTB from FAT partition `mmc 0:1` and boots
-them. Run each command separately and continue only when both `crc32 -v`
-commands return success. The addresses, sizes, and CRC32 values above are
-from one verified build; obtain the values for the WIC being tested instead of
-treating them as fixed release constants.
+them. Run each command separately and continue only after each load
+reports success. After a manual `tfa_prepare`, `v4h_bl31_prepare` sees the
+active handoff through `tfa_status` and does not reload the default
+BL31-only profile.
 
 Before V4H xSPI programming, rz-utils checks the actual SPL, FIT, BID, and
 PCIe file spans against the configured offsets and rejects an overlap. The
