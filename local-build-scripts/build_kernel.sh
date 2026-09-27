@@ -41,7 +41,22 @@ if [ -z "${KERNEL_DIR}" ]; then
 	echo "Please recheck your setup"
 	exit 1
 fi
-ensure_src_dir "${KERNEL_DIR}" "${KERNEL_REPO:-}" "${KERNEL_BRANCH:-}" "Linux Kernel"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KERNEL_PATCH_DIR="${SCRIPT_DIR}/kernel_patches"
+
+# KERNEL_SRCREV (if set) pins to an exact commit and lets us apply kernel_patches/series on
+# top -- same series-file convention as kernel-modules/patches/<name>/series. Patches only
+# get (re)applied right after an actual clone/checkout (SRC_JUST_SYNCED=1), matching how
+# fetch_git()/apply_patches() behave for out-of-tree modules: to re-patch an already-synced
+# tree, remove it and let this re-clone.
+if [ -n "${KERNEL_SRCREV:-}" ]; then
+	ensure_src_dir_at_rev "${KERNEL_DIR}" "${KERNEL_REPO:-}" "${KERNEL_SRCREV}" "Linux Kernel"
+	if [ "${SRC_JUST_SYNCED}" = "1" ]; then
+		apply_series_patches "${KERNEL_PATCH_DIR}" "${KERNEL_DIR}" "Linux Kernel"
+	fi
+else
+	ensure_src_dir "${KERNEL_DIR}" "${KERNEL_REPO:-}" "${KERNEL_BRANCH:-}" "Linux Kernel"
+fi
 
 # Default fallback
 DEFCONFIG="renesas_defconfig"
@@ -68,7 +83,6 @@ fi
 echo "Using DEFCONFIG=${DEFCONFIG}"
 
 # Optional: KERNEL_VARIANT=<name> merges kernel-config/<name>.config on top of the board defconfig.
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VARIANT_FRAGMENT=""
 if [ -n "${KERNEL_VARIANT:-}" ]; then
 	VARIANT_FRAGMENT="${SCRIPT_DIR}/kernel-config/${KERNEL_VARIANT}.config"

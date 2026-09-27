@@ -28,10 +28,11 @@ ensure_src_dir() {
 	git clone --branch "${branch}" "${repo}" "${dir}"
 }
 
-# Like ensure_src_dir(), but pins to a fixed commit and re-syncs if it drifts.
+# ensure_src_dir()
 ensure_src_dir_at_rev() {
 	local dir="$1" repo="$2" rev="$3" label="$4"
-	local have
+	local have just_cloned=0
+	SRC_JUST_SYNCED=0
 
 	if [ -z "${repo}" ] || [ -z "${rev}" ]; then
 		echo "There is no ${label} source at ${dir}, and no repo/rev configured in config.ini to clone it automatically." >&2
@@ -47,11 +48,13 @@ ensure_src_dir_at_rev() {
 		fi
 		echo "${label} source not found at ${dir}, cloning ${repo}..."
 		git clone -q "${repo}" "${dir}"
+		just_cloned=1
 	fi
 
 	have="$(git -C "${dir}" rev-parse HEAD 2>/dev/null)"
 	if [ "${have}" = "${rev}" ]; then
 		echo "${label}: already at ${rev}"
+		[ "${just_cloned}" = "1" ] && SRC_JUST_SYNCED=1
 		return 0
 	fi
 
@@ -60,6 +63,27 @@ ensure_src_dir_at_rev() {
 	fi
 	echo "${label}: checking out ${rev}"
 	git -C "${dir}" checkout -q -f "${rev}"
+	SRC_JUST_SYNCED=1
+}
+
+# Apply <patch_dir>/series (one filename per line, '#' comments/blank lines skipped) onto
+# <src_dir> with `patch -p1`. No-op (not an error) if the series file doesn't exist.
+apply_series_patches() {
+	local patch_dir="$1" src_dir="$2" label="$3"
+	local series="${patch_dir}/series"
+	local p
+
+	[ -f "${series}" ] || return 0
+
+	while read -r p; do
+		[ -z "${p}" ] && continue
+		case "${p}" in \#*) continue;; esac
+		echo "${label}: applying ${p}"
+		patch -p1 -d "${src_dir}" --no-backup-if-mismatch -i "${patch_dir}/${p}" || {
+			echo "Error: failed to apply ${label} patch ${p}" >&2
+			exit 1
+		}
+	done < "${series}"
 }
 
 _usage="
