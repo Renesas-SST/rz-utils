@@ -46,11 +46,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KERNEL_PATCH_DIR="${SCRIPT_DIR}/kernel_patches"
 
-# KERNEL_SRCREV (if set) pins to an exact commit and lets us apply kernel_patches/series on
-# top -- same series-file convention as kernel-modules/patches/<name>/series. Patches only
-# get (re)applied right after an actual clone/checkout (SRC_JUST_SYNCED=1), matching how
-# fetch_git()/apply_patches() behave for out-of-tree modules: to re-patch an already-synced
-# tree, remove it and let this re-clone.
+# Ensure KERNEL_SRCREV 
 if [ -n "${KERNEL_SRCREV:-}" ]; then
 	ensure_src_dir_at_rev "${KERNEL_DIR}" "${KERNEL_REPO:-}" "${KERNEL_SRCREV}" "Linux Kernel"
 	if [ "${SRC_JUST_SYNCED}" = "1" ]; then
@@ -63,13 +59,13 @@ fi
 # Default fallback
 DEFCONFIG="renesas_defconfig"
 
-# Per-platform mapping
+# Per-platform mapping -- all platforms currently build off the one shared renesas_defconfig.
 declare -A KERN_DEFCONFIG=(
-	["RZG2L-SBC"]="rzg2l-sbc_defconfig"
-	["RZG2L-EVK"]="rzv2l_defconfig"
-	["RZV2L-EVK"]="rzv2l_defconfig"
-	["RZV2H-EVK"]="rzv2h_defconfig"
-	["RZV2H-RDK"]="rzv2h_defconfig"
+	["RZG2L-SBC"]="renesas_defconfig"
+	["RZG2L-EVK"]="renesas_defconfig"
+	["RZV2L-EVK"]="renesas_defconfig"
+	["RZV2H-EVK"]="renesas_defconfig"
+	["RZV2H-RDK"]="renesas_defconfig"
 )
 
 # Resolve DEFCONFIG
@@ -84,9 +80,7 @@ fi
 
 echo "Using DEFCONFIG=${DEFCONFIG}"
 
-# Always merged: mirrors what the Yocto linux-yocto recipe pulls in unconditionally for this
-# board (see kernel-config/yocto-common.config's own header) -- notably CONFIG_LOCALVERSION_AUTO=n,
-# without which KERNELRELEASE picks up a "-g<commit>" suffix that drifts on every rebase.
+# Add config from yocto
 COMMON_FRAGMENT="${SCRIPT_DIR}/kernel-config/yocto-common.config"
 
 # Optional, on top of the above: KERNEL_VARIANT=<name> merges kernel-config/<name>.config.
@@ -110,8 +104,7 @@ kernel_setup() {
 	export LOCALVERSION=""
 }
 
-# Concatenate the board defconfig, the always-on common fragment, and (if set) the variant
-# fragment, let kconfig fill in the rest.
+# Merge the board defconfig
 mk_config_merged() {
 	local defconfig_file="arch/arm64/configs/${DEFCONFIG}"
 
@@ -139,8 +132,7 @@ mk_config_merged() {
 	fi
 }
 
-# Single choke point for turning DEFCONFIG into a .config -- always goes through the merge now
-# that COMMON_FRAGMENT is unconditional (KERNEL_VARIANT is optional on top of it).
+# Add config into a renesas_config
 configure_kernel() {
 	if [ -f "${COMMON_FRAGMENT}" ] || [ -n "${VARIANT_FRAGMENT}" ]; then
 		mk_config_merged
@@ -184,9 +176,7 @@ mk_distclean() {
 	make distclean
 }
 
-# Fast local-iteration path: reset ${KERNEL_DIR} to a pristine checkout of its current commit
-# (no re-clone) and reapply kernel_patches/series on top -- for when you edited a patch and
-# just need it reapplied, not a full resync from KERNEL_SRCREV.
+# reset ${KERNEL_DIR}
 mk_reset_src() {
 	clean_repo "${KERNEL_DIR}" "Linux Kernel"
 	if [ -n "${KERNEL_SRCREV:-}" ]; then

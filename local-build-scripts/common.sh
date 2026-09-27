@@ -28,9 +28,7 @@ ensure_src_dir() {
 	git clone --branch "${branch}" "${repo}" "${dir}"
 }
 
-# Like ensure_src_dir(), but pins to a fixed commit and re-syncs if it drifts.
-# Sets SRC_JUST_SYNCED=1 if it actually cloned/checked out (vs. already at ${rev}), so
-# callers know whether it's safe/necessary to (re)apply a patch series on top.
+# Like ensure_src_dir() but pins to a commit; sets SRC_JUST_SYNCED=1 if it actually synced.
 ensure_src_dir_at_rev() {
 	local dir="$1" repo="$2" rev="$3" label="$4"
 	local have just_cloned=0
@@ -53,12 +51,19 @@ ensure_src_dir_at_rev() {
 		just_cloned=1
 	fi
 
+	# Repo URL changed since last clone (e.g. fork move) -- repoint origin instead of erroring.
+	local origin_url
+	origin_url="$(git -C "${dir}" remote get-url origin 2>/dev/null)"
+	if [ -n "${origin_url}" ] && [ "${origin_url}" != "${repo}" ]; then
+		echo "${label}: origin was ${origin_url}, repointing to ${repo}"
+		git -C "${dir}" remote set-url origin "${repo}"
+		git -C "${dir}" fetch -q origin
+	fi
+
 	have="$(git -C "${dir}" rev-parse HEAD 2>/dev/null)"
 	if [ "${have}" = "${rev}" ]; then
 		echo "${label}: already at ${rev}"
-		# A fresh clone that happened to land exactly on ${rev} (default branch HEAD ==
-		# rev) still needs its patch series applied -- it skipped the checkout below,
-		# which is the only other place that sets this.
+		# A clone landing exactly on ${rev} skips the checkout below, so flag it here too.
 		[ "${just_cloned}" = "1" ] && SRC_JUST_SYNCED=1
 		return 0
 	fi
@@ -71,8 +76,7 @@ ensure_src_dir_at_rev() {
 	SRC_JUST_SYNCED=1
 }
 
-# Apply <patch_dir>/series (one filename per line, '#' comments/blank lines skipped) onto
-# <src_dir> with `patch -p1`. No-op (not an error) if the series file doesn't exist.
+# Apply <patch_dir>/series (filenames, one per line) onto <src_dir> with patch -p1; no-op if missing.
 apply_series_patches() {
 	local patch_dir="$1" src_dir="$2" label="$3"
 	local series="${patch_dir}/series"
@@ -91,13 +95,7 @@ apply_series_patches() {
 	done < "${series}"
 }
 
-# Reset <dir> (a git repo already at the commit/branch you want) back to a pristine checkout
-# without re-cloning: git reset --hard (discard tracked changes) + git clean -fdx (remove
-# untracked/ignored files, including any stray build output). Sets SRC_JUST_SYNCED=1, same
-# signal ensure_src_dir_at_rev() sets on a fresh clone/checkout, so callers that gate a patch
-# series on it (see build_kernel.sh) know to (re)apply patches even though HEAD didn't move --
-# this is the fast local-iteration path for "I changed a patch, make it apply again" instead
-# of a full rm -rf + re-clone.
+# Reset <dir> to a pristine checkout (no re-clone) and flag SRC_JUST_SYNCED=1 to reapply patches.
 clean_repo() {
 	local dir="$1" label="$2"
 
