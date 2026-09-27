@@ -4,4 +4,4 @@
 0003-Correcting-variable-type.patch
 0004-Remove-unused-memory.patch
 0005-Correction-32bit-variable.patch
-0006-kernel-6.18-ccflags-and-void-remove.patch
+0006-drv-vspm_if-update-following-the-kernel-6.18.patch
