@@ -14,6 +14,8 @@ Build the Linux kernel (${KERNEL_DIR}). Called directly or via
   <sub_command>:
     clean             make clean
     distclean         make distclean
+    reset-src         Reset KERNEL_DIR to a clean checkout + reapply kernel_patches/series,
+                      without re-cloning (see clean_repo() in common.sh)
     defconfig         Write config.ini's DEFCONFIG (kernel_setup + make <defconfig>)
     menuconfig        defconfig, then make menuconfig
     image             defconfig, then build Image
@@ -82,7 +84,12 @@ fi
 
 echo "Using DEFCONFIG=${DEFCONFIG}"
 
-# Optional: KERNEL_VARIANT=<name> merges kernel-config/<name>.config on top of the board defconfig.
+# Always merged: mirrors what the Yocto linux-yocto recipe pulls in unconditionally for this
+# board (see kernel-config/yocto-common.config's own header) -- notably CONFIG_LOCALVERSION_AUTO=n,
+# without which KERNELRELEASE picks up a "-g<commit>" suffix that drifts on every rebase.
+COMMON_FRAGMENT="${SCRIPT_DIR}/kernel-config/yocto-common.config"
+
+# Optional, on top of the above: KERNEL_VARIANT=<name> merges kernel-config/<name>.config.
 VARIANT_FRAGMENT=""
 if [ -n "${KERNEL_VARIANT:-}" ]; then
 	VARIANT_FRAGMENT="${SCRIPT_DIR}/kernel-config/${KERNEL_VARIANT}.config"
@@ -103,7 +110,8 @@ kernel_setup() {
 	export LOCALVERSION=""
 }
 
-# Concatenate the board defconfig and the variant fragment, let kconfig fill in the rest.
+# Concatenate the board defconfig, the always-on common fragment, and (if set) the variant
+# fragment, let kconfig fill in the rest.
 mk_config_merged() {
 	local defconfig_file="arch/arm64/configs/${DEFCONFIG}"
 
@@ -115,8 +123,9 @@ mk_config_merged() {
 	local merged
 	merged="$(mktemp -t rzv2h-merged-config.XXXXXX)"
 	cat "${defconfig_file}" > "${merged}"
-	# Variant fragment goes last so it can override the board defconfig.
-	cat "${VARIANT_FRAGMENT}" >> "${merged}"
+	# Fragments go last, in order, so each can override what came before it.
+	[ -f "${COMMON_FRAGMENT}" ] && cat "${COMMON_FRAGMENT}" >> "${merged}"
+	[ -n "${VARIANT_FRAGMENT}" ] && cat "${VARIANT_FRAGMENT}" >> "${merged}"
 
 	echo '|============================================|'
 	echo '|      Configure kernel (alldefconfig)       |'
@@ -130,9 +139,10 @@ mk_config_merged() {
 	fi
 }
 
-# Single choke point for turning DEFCONFIG into a .config, so KERNEL_VARIANT always applies.
+# Single choke point for turning DEFCONFIG into a .config -- always goes through the merge now
+# that COMMON_FRAGMENT is unconditional (KERNEL_VARIANT is optional on top of it).
 configure_kernel() {
-	if [ -n "${VARIANT_FRAGMENT}" ]; then
+	if [ -f "${COMMON_FRAGMENT}" ] || [ -n "${VARIANT_FRAGMENT}" ]; then
 		mk_config_merged
 	else
 		make ${DEFCONFIG}
@@ -172,6 +182,16 @@ mk_clean() {
 
 mk_distclean() {
 	make distclean
+}
+
+# Fast local-iteration path: reset ${KERNEL_DIR} to a pristine checkout of its current commit
+# (no re-clone) and reapply kernel_patches/series on top -- for when you edited a patch and
+# just need it reapplied, not a full resync from KERNEL_SRCREV.
+mk_reset_src() {
+	clean_repo "${KERNEL_DIR}" "Linux Kernel"
+	if [ -n "${KERNEL_SRCREV:-}" ]; then
+		apply_series_patches "${KERNEL_PATCH_DIR}" "${KERNEL_DIR}" "Linux Kernel"
+	fi
 }
 
 mk_defconfig() {
@@ -222,6 +242,9 @@ case ${1} in
 		;;
 	'distclean')
 		mk_distclean
+		;;
+	'reset-src')
+		mk_reset_src
 		;;
 	'defconfig')
 		mk_defconfig
