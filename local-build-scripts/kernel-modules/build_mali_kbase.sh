@@ -1,8 +1,5 @@
 #!/bin/bash
-#
-# Build mali_kbase.ko, the PowerVR/Mali GPU out-of-tree kernel module, from
-# the Renesas Mali DDK tarball (mali-g31_km_v1.3.0.tar.gz).
-#
+# Build mali_kbase.ko, the PowerVR/Mali GPU out-of-tree kernel module, from the Renesas Mali DDK tarball.
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -30,32 +27,13 @@ export KERNELDIR="${KERNEL_DIR}"
 export KERNEL_SRC="${KERNEL_DIR}"
 
 mk_fetch() {
-	# meta-rz-graphics' patches for this DDK are against a deep path inside
-	# the tarball, hence -p5 (see build_mali_module.sh, the script this was
-	# ported from).
+	# -p5: meta-rz-graphics' patches target a deep path inside the tarball.
 	ensure_tar_src "${NAME}" "${URL}" "${SHA256}" "${SRC_DIR}/${BUILD_SUBDIR}" 5
 
-	# Page migration is not patched, it's disabled outright: kernel 6.18
-	# changed address_space_operations completely and the DDK's migration
-	# callbacks no longer match any signature worth patching around. Real
-	# (non-empty) stub bodies are required -- mali_kbase_mem_pool.c/mem.c
-	# call these unconditionally behind kbase_is_page_migration_enabled(),
-	# so returning false/no-op from it disables the feature cleanly instead
-	# of leaving the symbols undefined (which only "works" because
-	# KBUILD_MODPOST_WARN=1 downgrades the link error to a warning --
-	# insmod then fails for real with "Unknown symbol").
+	# Page migration disabled for kernel 6.18 (address_space_operations changed); real stub bodies, not omitted symbols.
 	cat > "${SRC_DIR}/${BUILD_SUBDIR}/mali_kbase_mem_migrate.c" <<'EOF'
 // SPDX-License-Identifier: GPL-2.0
-/*
- * Page migration disabled for kernel 6.18+: address_space_operations changed
- * completely upstream and the DDK's migration callbacks (this file, as
- * shipped) no longer match any signature worth patching around. These are
- * real stub bodies, not omitted definitions -- kbase_is_page_migration_enabled()
- * returning false is what actually disables the feature; the other four
- * still need a symbol to link against since mali_kbase_mem_pool.c and
- * mali_kbase_mem.c call them unconditionally (guarded at the call site by
- * kbase_is_page_migration_enabled(), not by a compile-time #ifdef).
- */
+/* Page migration disabled for kernel 6.18+; real stub bodies since callers don't guard with #ifdef. */
 #include <mali_kbase.h>
 #include "mali_kbase_mem_migrate.h"
 
@@ -88,20 +66,7 @@ mk_build() {
 	kernel_is_built
 	mk_fetch
 	echo "--- building ${NAME}"
-	# Build via the DDK's OWN top-level Makefile (cd in, plain `make`), not by
-	# driving the kernel's Kbuild directly with `make -C $KERNEL_DIR M=...`.
-	# That distinction matters here, unlike for mmngr/vspm: this Makefile
-	# computes CONFIG_MALI_* (from CONFIGS, see its own Makefile) into
-	# -DCONFIG_MALI_X=1 flags and passes them to the kernel build as
-	# KCPPFLAGS -- driving Kbuild directly skips that translation entirely,
-	# so every `#if IS_ENABLED(CONFIG_MALI_...)` in the driver evaluates as
-	# if unset, no matter what CONFIG_MALI_*=y we pass as `make` variables.
-	# That's what caused device/backend/mali_kbase_device_jm.c's dev_init[]
-	# table to wire up kbase_gpu_device_create/destroy from the (correctly
-	# excluded) dummy-model backend instead of the real-hardware path
-	# (kbase_get_irqs/registers_map) -- an "Unknown symbol" at insmod time
-	# on real hardware despite a clean build, because KBUILD_MODPOST_WARN=1
-	# only downgrades the link error to a warning, it doesn't fix it.
+	# Build via the DDK's own top-level Makefile, not the kernel's Kbuild directly -- that's what translates CONFIG_MALI_* into the driver's -D flags.
 	( unset CFLAGS CPPFLAGS CXXFLAGS
 	  cd "${SRC_DIR}/${BUILD_SUBDIR}" && make -j"$(nproc)" \
 		BUILD=release \
@@ -119,6 +84,11 @@ mk_install() {
 	install_module_ko "${NAME}" "${SRC_DIR}/${BUILD_SUBDIR}" "extra"
 }
 
+mk_reset_src() {
+	rm -f "${SRC_DIR}/.srcrev"
+	mk_fetch
+}
+
 mk_clean() {
 	[ -d "${SRC_DIR}/${BUILD_SUBDIR}" ] || return 0
 	( cd "${SRC_DIR}/${BUILD_SUBDIR}" && make clean ) || true
@@ -131,6 +101,7 @@ echo "Source under ${SRC_DIR}"
 
 case "${cmd}" in
 	fetch)   mk_fetch ;;
+	reset-src) mk_reset_src ;;
 	all)     mk_build ;;
 	install) mk_install ;;
 	clean)   mk_clean ;;

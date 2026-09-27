@@ -45,6 +45,11 @@ mk_install() {
 	install_module_ko "${NAME}" "${SRC_DIR}" "extra"
 }
 
+mk_reset_src() {
+	clean_repo "${SRC_DIR}" "${NAME}"
+	apply_patches "${NAME}" "${SRC_DIR}"
+}
+
 mk_clean() {
 	[ -d "${SRC_DIR}" ] || return 0
 	local kver
@@ -60,6 +65,7 @@ echo "Source under ${SRC_DIR}"
 
 case "${cmd}" in
 	fetch)   mk_fetch ;;
+	reset-src) mk_reset_src ;;
 	all)     mk_build ;;
 	install) mk_install ;;
 	clean)   mk_clean ;;
