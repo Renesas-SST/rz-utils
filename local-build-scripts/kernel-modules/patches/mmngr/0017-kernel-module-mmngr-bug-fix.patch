@@ -1,0 +1,43 @@
+Upstream-Status: Pending
+diff --git a/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c b/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
+index fb7d3e8..1d82d1c 100644
+--- a/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
++++ b/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
+@@ -938,7 +938,7 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 	int		ercd;
+ 	int		ret;
+ 	struct MM_PARAM	*p = file->private_data;
+-	struct MM_CACHE_PARAM cachep;
++	struct MM_CACHE_PARAM cache;
+ 	struct device	*mm_dev;
+ 
+ 	mm_dev = mm_drvdata->mm_dev;
+@@ -991,14 +991,22 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 		}
+ 		break;
+ 	case MM_IOC_FLUSH:
+-		copy_from_user(&cachep, (struct MM_CACHE_PARAM *)arg, sizeof(struct MM_CACHE_PARAM));
+-		dma_sync_single_for_device(mm_dev, p->hard_addr + cachep.offset,
+-					cachep.len, DMA_FROM_DEVICE);
++		if (0 != copy_from_user(&cache, (struct MM_CACHE_PARAM *)arg, sizeof(struct MM_CACHE_PARAM)))
++		{
++				ret = -EFAULT;
++				goto exit;
++		}
++		dma_sync_single_for_device(mm_dev, p->hard_addr + cache.offset,
++									cache.len, DMA_TO_DEVICE);
+ 		break;
+ 	case MM_IOC_INVAL:
+-		copy_from_user(&cachep, (struct MM_CACHE_PARAM *)arg, sizeof(struct MM_CACHE_PARAM));
+-		dma_sync_single_for_cpu(mm_dev, p->hard_addr + cachep.offset,
+-					cachep.len, DMA_TO_DEVICE);
++		if (0 != copy_from_user(&cache, (struct MM_CACHE_PARAM *)arg, sizeof(struct MM_CACHE_PARAM)))
++		{
++				ret = -EFAULT;
++				goto exit;
++		}
++		dma_sync_single_for_cpu(mm_dev, p->hard_addr + cache.offset,
++								cache.len, DMA_FROM_DEVICE);
+ 		break;
+ 	case MM_IOC_VTOP:   /* change virtual address to physical address */
+ 		{
