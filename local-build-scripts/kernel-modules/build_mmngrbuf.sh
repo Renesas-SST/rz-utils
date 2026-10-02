@@ -50,6 +50,8 @@ mk_install() {
 }
 
 mk_reset_src() {
+	# Nothing to reset before the first fetch: clone + patch instead.
+	[ -d "${SRC_DIR}/.git" ] || { mk_fetch; return; }
 	clean_repo "${SRC_DIR}" "${NAME}"
 	apply_patches "${NAME}" "${SRC_DIR}"
 }
