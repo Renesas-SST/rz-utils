@@ -112,93 +112,76 @@ clean_repo() {
 }
 
 _usage="
-Usage: 
+Usage:
 
-$ ./main_build.sh <target_build> <sub_command> 
+$ ./main_build.sh <target_build> [<sub_command>] [<module>]
+
+Builds the software for the RZ/V2H RDK (ver1 and ver101), the only supported board.
 
 Option:
     <target_build>:
         1. kernel
-            Build for Linux Kernel
+            Build the Linux kernel (KERNEL_DIR, KERNEL_BRANCH or KERNEL_SRCREV;
+            optional KERNEL_VARIANT=<name> merges kernel-config/<name>.config, e.g. preempt-rt)
             <sub_command>:
                 - clean
                 - distclean
+                - reset-src
                 - defconfig
                 - menuconfig
                 - image
                 - dtbs
-                - all
                 - modules
                 - modules-install
+                - all
 
-        2. uboot
-            Build for U-Boot
+        2. kernel-modules
+            Out-of-tree kernel modules (mmngr, mmngrbuf, vspm, vspm_if, mali_kbase,
+            uvcs_drv), the extra/ set of the kernel .deb. Needs the kernel built first
+            (kernel modules-install). Without <module>, all of them in dependency order
+            (kernel-modules/kernel_modules_all.sh); see kernel-modules/README.md.
             <sub_command>:
+                - fetch
+                - reset-src
+                - all
+                - install (into KERNEL_MODULES_OUTPUT_DIR)
                 - clean
-                - disclean
-                - defconfig
-                - image
-                - all
+            <module>: optional, one of the above names (kernel-modules/build_<module>.sh)
 
-        3. atf
-            Build for ATF
+        3. ipl
+            IPL (BL2 + FIP with BL31/U-Boot) for the RZ/V2H RDK boards in IPL_BOARDS
+            (ipl_build/build_ipl.sh; sources in IPL_WORK_DIR, output in IPL_OUT_DIR).
+            Multi-OS options: IPL_FEATURES_FILE / IPL_FEATURES, see ipl_build/README.md.
             <sub_command>:
-                - clean
-                - distclean
-                - bl2
-                - bl31
-                - all
-                - dtbs
+                - all (default): check out, patch and build; stops if IPL_WORK_DIR has
+                  local changes
+                - keep: rebuild IPL_WORK_DIR as it is, with local changes
+                - force: discard local changes in IPL_WORK_DIR, patch and build again
+                - clean: remove IPL_OUT_DIR (sources are kept)
 
-        4. flash-writer
-            Build for Flash-Writer
-            <sub_command>:
-                - clean
-                - all
-
-        5. kernel-modules
-            Out-of-tree kernel modules (mali_kbase, mmngr, mmngrbuf, vspm, vspm_if -- the
-            extra/ set Renesas ships in the prebuilt kernel .deb, not covered by
-            kernel modules / kernel modules-install). No aggregator here: each module
-            has its own standalone script under kernel-modules/, run directly, e.g.
-                cd kernel-modules && ./build_mmngr.sh all
-            See kernel-modules/README.md for the full list and build order (vspm_if needs
-            vspm built first).
-
-        6. firmware-pack
-            Package ATF's BL2/FIP into the boot-header + S-record form the board's
-            SCIF/Flash-Writer boot flow expects. Needs U-Boot already built (uboot all)
-            -- BL33=${UBOOT_DIR}/u-boot.bin is required for ATF's fip target.
-            <sub_command>:
-                - bptool (build the bptool host tool only)
-                - all
-
-        7. all
-            Build for all software stacks (Linux Kernel, U-Boot, ATF, Firmware-Pack,
-            Flash-Writer)
+        4. all
+            kernel all, kernel-modules install, ipl all
             <sub_command>: None
 
-        8. clean-all
-            Clean for all software stacks (Linux Kernel, U-Boot, ATF, Firmware-Pack,
-            Flash-Writer)
+        5. clean-all
+            kernel distclean, kernel-modules clean, ipl clean
             <sub_command>: None
 
-For example: 
-    Build all images (Kernel image and device tree) for the Linux Kernel:
+For example:
+    Build the kernel (Image, device trees, modules) and install the modules:
         $ ./main_build.sh kernel all
 
-    Clean the Linux Kernel (Kernel image and device tree) output:
-        $ ./main_build.sh kernel clean
+    Build and install all out-of-tree modules, or only one:
+        $ ./main_build.sh kernel-modules install
+        $ ./main_build.sh kernel-modules all vspm
 
-    Build and install kernel modules to KERNEL_MODULES_OUTPUT_DIR:
-        $ ./main_build.sh kernel modules-install
+    Build the IPL for RDK ver1 and ver101 in CM33 cold boot mode:
+        $ IPL_BOARDS=\"ver1 ver101\" IPL_FEATURES=RZ_CM33_COLDBOOT ./main_build.sh ipl
 
 Note: Before executing the build, please make sure that you have updated the configuration file: config.ini at the top of the build scripts folder.
       Kernel modules install output path is configured by KERNEL_MODULES_OUTPUT_DIR in config.ini.
-
-Platform Override:
-    By default, PLATFORM is read from config.ini, but you can override it at runtime, for example:
-        $ PLAT=RZ-CMN ./main_build.sh kernel full-image
+      In the remoteproc IPL mode (default), set enable_overlay_remoteproc=1 in boot/uEnv.txt
+      (see ipl_build/uEnv.txt); leave it unset in the other modes.
 "
 # Help message
 show_help() {
