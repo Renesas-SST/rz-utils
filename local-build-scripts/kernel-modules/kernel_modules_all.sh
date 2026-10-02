@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Build/install/clean all 7 out-of-tree kernel modules in dependency order (vspm before vspm_if).
+# Build/install/clean all 6 out-of-tree kernel modules in dependency order (vspm before vspm_if).
 
 set -uo pipefail
 
@@ -10,7 +10,7 @@ cd "${SCRIPT_DIR}"
 cmd="${1:-all}"
 
 # Order matters: vspm before vspm_if.
-MODULES=(mmngr mmngrbuf vspm vspm_if mali_kbase uvcs_drv 88x2bu)
+MODULES=(mmngr mmngrbuf vspm vspm_if mali_kbase uvcs_drv)
 
 declare -A RESULT
 FAILED=0
