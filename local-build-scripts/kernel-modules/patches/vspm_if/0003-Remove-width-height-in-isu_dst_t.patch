@@ -1,8 +1,7 @@
-From 653a6d28a884f065af3a6e2222319c780930b03b Mon Sep 17 00:00:00 2001
+From 66473f91a0efffc8c6e48ed22647e2037fe801a7 Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Wed, 25 Aug 2021 16:09:12 +0700
-Subject: [PATCH 2/2] Remove width/height in isu_dst_t
-Upstream-Status: Pending
+Subject: [PATCH 2/5] Remove width/height in isu_dst_t
 
 ---
  vspm_if-module/files/vspm_if/include/vspm_if.h | 2 --
@@ -22,5 +21,5 @@ index 33afec6..964b81f 100644
          unsigned char           swap;
          unsigned char           csc;
 -- 
-2.7.4
+2.17.1
 

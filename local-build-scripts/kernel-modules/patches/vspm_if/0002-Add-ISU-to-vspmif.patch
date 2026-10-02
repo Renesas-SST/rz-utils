@@ -1,16 +1,18 @@
-From 8176aa58fb9c55f2401368be4b1fb2efed0a598b Mon Sep 17 00:00:00 2001
+From b19cb16aad6f7c312f66676309a7fc8fa47b820b Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Fri, 2 Jul 2021 10:18:28 +0700
-Subject: [PATCH] Add ISU to vspmif
-Upstream-Status: Pending
+Subject: [PATCH 1/5] Add ISU to vspmif
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
+
+Remove unused variables to avoid compilation warnings
+Signed-off-by: trungvanle <trung.le.xk@renesas.com>
 ---
- vspm_if-module/files/vspm_if/drv/vspm_if_local.h |  26 ++
- vspm_if-module/files/vspm_if/drv/vspm_if_main.c  |  33 +-
- vspm_if-module/files/vspm_if/drv/vspm_if_sub.c   | 381 +++++++++++++++++++++++
- vspm_if-module/files/vspm_if/include/vspm_if.h   |  77 +++++
- 4 files changed, 516 insertions(+), 1 deletion(-)
+ .../files/vspm_if/drv/vspm_if_local.h         |  26 ++
+ .../files/vspm_if/drv/vspm_if_main.c          |  33 +-
+ .../files/vspm_if/drv/vspm_if_sub.c           | 379 ++++++++++++++++++
+ .../files/vspm_if/include/vspm_if.h           |  77 ++++
+ 4 files changed, 514 insertions(+), 1 deletion(-)
 
 diff --git a/vspm_if-module/files/vspm_if/drv/vspm_if_local.h b/vspm_if-module/files/vspm_if/drv/vspm_if_local.h
 index af70784..ca623c7 100644
@@ -66,10 +68,10 @@ index af70784..ca623c7 100644
  #endif /* __VSPM_IF_LOCAL_H__ */
  
 diff --git a/vspm_if-module/files/vspm_if/drv/vspm_if_main.c b/vspm_if-module/files/vspm_if/drv/vspm_if_main.c
-index 216db1d..790dde4 100644
+index 68b7735..5328ead 100644
 --- a/vspm_if-module/files/vspm_if/drv/vspm_if_main.c
 +++ b/vspm_if-module/files/vspm_if/drv/vspm_if_main.c
-@@ -155,6 +155,10 @@ static long vspm_ioctl_init(
+@@ -156,6 +156,10 @@ static long vspm_ioctl_init(
  			init_par.par.fdp = &init_fdp_par;
  		}
  		break;
@@ -80,7 +82,7 @@ index 216db1d..790dde4 100644
  	default:
  		break;
  	}
-@@ -171,7 +175,6 @@ static long vspm_ioctl_init(
+@@ -172,7 +176,6 @@ static long vspm_ioctl_init(
  	default:
  		return -EFAULT;
  	}
@@ -88,7 +90,7 @@ index 216db1d..790dde4 100644
  	priv->handle = handle;
  	return 0;
  }
-@@ -315,6 +318,18 @@ static long vspm_ioctl_entry(
+@@ -316,6 +319,18 @@ static long vspm_ioctl_entry(
  					&entry_data->ip_par.fdp.par;
  			}
  			break;
@@ -107,7 +109,7 @@ index 216db1d..790dde4 100644
  		default:
  			break;
  		}
-@@ -622,6 +637,10 @@ static long vspm_ioctl_init32(
+@@ -627,6 +642,10 @@ static long vspm_ioctl_init32(
  			init_par.par.fdp = NULL;
  		}
  		break;
@@ -118,7 +120,7 @@ index 216db1d..790dde4 100644
  	default:
  		break;
  	}
-@@ -722,6 +741,18 @@ static long vspm_ioctl_entry32(
+@@ -727,6 +746,18 @@ static long vspm_ioctl_entry32(
  					&entry_data->ip_par.fdp.par;
  			}
  			break;
@@ -138,7 +140,7 @@ index 216db1d..790dde4 100644
  			break;
  		}
 diff --git a/vspm_if-module/files/vspm_if/drv/vspm_if_sub.c b/vspm_if-module/files/vspm_if/drv/vspm_if_sub.c
-index fb2f58d..dd4d8de 100644
+index 335678a..b2c8ac9 100644
 --- a/vspm_if-module/files/vspm_if/drv/vspm_if_sub.c
 +++ b/vspm_if-module/files/vspm_if/drv/vspm_if_sub.c
 @@ -79,6 +79,7 @@ void release_all_entry_data(struct vspm_if_private_t *priv)
@@ -149,7 +151,7 @@ index fb2f58d..dd4d8de 100644
  		kfree(entry_data);
  	}
  	spin_unlock_irqrestore(&priv->lock, lock_flag);
-@@ -856,7 +857,146 @@ int set_fdp_par(
+@@ -868,7 +869,145 @@ int set_fdp_par(
  
  	return 0;
  }
@@ -159,7 +161,6 @@ index fb2f58d..dd4d8de 100644
 +	struct isu_src_t *src,
 +	struct vspm_if_work_buff_t *work_buff)
 +{
-+	int ercd;
 +	/* copy isu_src_t parameter */
 +	if (copy_from_user(
 +			&in->in,
@@ -195,7 +196,7 @@ index fb2f58d..dd4d8de 100644
 +
 +	return 0;
 +}
- 
++
 +static int set_isu_dst_par(
 +	struct vspm_entry_isu_out *out, struct isu_dst_t *src)
 +{
@@ -291,12 +292,12 @@ index fb2f58d..dd4d8de 100644
 +err_exit:
 +	return ercd;
 +}
-+
+ 
 +/* VSP 32 bits */
  static int set_compat_vsp_src_clut_par(
  	struct vsp_dl_t *clut,
  	unsigned int src,
-@@ -1676,6 +1816,247 @@ err_exit:
+@@ -1688,6 +1827,246 @@ err_exit:
  	return ercd;
  }
  
@@ -492,7 +493,6 @@ index fb2f58d..dd4d8de 100644
 +{
 +	struct vspm_entry_isu *isu = &entry->ip_par.isu;
 +	struct compat_isu_start_t compat_isu_par;
-+	unsigned long tmp_addr;
 +
 +	int ercd;
 +
@@ -647,5 +647,5 @@ index 7a79d03..33afec6 100644
  	unsigned int picid;
  	unsigned char chroma_format;
 -- 
-2.7.4
+2.17.1
 

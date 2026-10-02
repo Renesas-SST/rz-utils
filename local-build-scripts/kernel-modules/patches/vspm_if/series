@@ -1,7 +1,9 @@
-0001-Add-ISU-to-vspmif.patch
-0002-Remove-width-height-in-isu_dst_t.patch
-0002-rzg2l-sbc-Support-Linux-6.10.patch
-0003-Correcting-variable-type.patch
-0004-Remove-unused-memory.patch
-0005-Correction-32bit-variable.patch
-0006-drv-vspm_if-update-following-the-kernel-6.18.patch
+0001-Use-macro-task_is_running-over-reading-task_struct.patch
+0002-Add-ISU-to-vspmif.patch
+0003-Remove-width-height-in-isu_dst_t.patch
+0004-Correcting-variable-type.patch
+0005-Remove-unused-memory.patch
+0006-Correction-32bit-variable.patch
+0007-Update-copyright-year-for-these-changed-files.patch
+0008-drv-vspm_if-update-following-the-kernel-6.18.patch
+0009-drv-vspm_if-include-linux-of.h.patch

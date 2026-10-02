@@ -1,12 +1,11 @@
-From 50b14d0c78dc43e6504a32a1168b77105a8896f6 Mon Sep 17 00:00:00 2001
+From d5df3d25a90a89e28f41131ece1075ebc851c3b3 Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Thu, 9 Sep 2021 11:35:29 +0700
-Subject: [PATCH 3/3] Correcting variable type
-Upstream-Status: Pending
+Subject: [PATCH 3/5] Correcting variable type
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
 ---
- vspm_if-module/files/vspm_if/include/vspm_if.h | 49 +++++++++++---------------
+ .../files/vspm_if/include/vspm_if.h           | 49 ++++++++-----------
  1 file changed, 21 insertions(+), 28 deletions(-)
 
 diff --git a/vspm_if-module/files/vspm_if/include/vspm_if.h b/vspm_if-module/files/vspm_if/include/vspm_if.h
@@ -101,5 +100,5 @@ index 964b81f..1c0617b 100644
  
  /*FDP */
 -- 
-2.7.4
+2.17.1
 

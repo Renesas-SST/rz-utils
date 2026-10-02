@@ -1,0 +1,19 @@
+From: Cong Nguyen <congnguyenvan002@gmail.com>
+Subject: [PATCH] drv: vspm_if: include linux/of.h
+
+<linux/of_device.h> no longer pulls in <linux/of.h> (6.4+), so
+struct of_device_id is incomplete. The old 6.10 patch added this include;
+the latest meta-rz-bsp series replaced that patch and dropped it.
+
+Upstream-Status: Pending
+---
+--- a/vspm_if-module/files/vspm_if/drv/vspm_if_main.c
++++ b/vspm_if-module/files/vspm_if/drv/vspm_if_main.c
+@@ -59,6 +59,7 @@
+ #include <linux/module.h>
+ #include <linux/init.h>
+ #include <linux/miscdevice.h>
++#include <linux/of.h>
+ #include <linux/of_device.h>
+ #include <linux/platform_device.h>
+ #include <linux/slab.h>
