@@ -1,8 +1,7 @@
-From 4d90b07765afb139bede6fb465d9afe4a7b115db Mon Sep 17 00:00:00 2001
+From 0893ebdf1006d49e3439d94610971d33ff80617d Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Wed, 8 Dec 2021 09:43:24 +0700
-Subject: [PATCH 11/11] Fix error cannot detect NOOUT in case rs_par=NULL
-Upstream-Status: Pending
+Subject: [PATCH 11/16] Fix error cannot detect NOOUT in case rs_par=NULL
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
 ---
@@ -32,4 +31,5 @@ index ae09b70..32a6eb1 100755
  		return ercd;
  
 -- 
-2.7.4
+2.17.1
+

@@ -1,8 +1,7 @@
-From f900449e00f7452114084b5c0fafcd6261fc3be4 Mon Sep 17 00:00:00 2001
+From a6cf6cd86e28283383bd6cb7adc3b40392b433fc Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Wed, 29 Sep 2021 09:51:24 +0700
-Subject: [PATCH 09/10] Wrong initialize value of clip
-Upstream-Status: Pending
+Subject: [PATCH 09/16] Wrong initialize value of clip
 
 Fix initialize value of clip in case setting ISU_CSC_RAW
 
@@ -36,4 +35,5 @@ index 20ffc36..97acd61 100755
  
  	/* check color space conversion parameter */
 -- 
-2.7.4
+2.17.1
+

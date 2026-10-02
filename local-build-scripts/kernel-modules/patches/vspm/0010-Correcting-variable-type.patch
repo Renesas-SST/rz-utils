@@ -1,15 +1,14 @@
-From 65c94774343f6f542fa191e3088e9a8a672da596 Mon Sep 17 00:00:00 2001
+From be6bce1dd4ba7ecf654403e6b119c0afc57b18c4 Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Thu, 9 Sep 2021 12:54:52 +0700
-Subject: [PATCH 8/8] Correcting variable type
-Upstream-Status: Pending
+Subject: [PATCH 08/16] Correcting variable type
 
 Correcting variable type following its size in HW manual
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
 ---
- vspm-module/files/vspm/drv/isu/isu_drv_local.h | 38 +++++++++++++-------------
- vspm-module/files/vspm/include/isu_drv.h       | 34 +++++++++++------------
+ .../files/vspm/drv/isu/isu_drv_local.h        | 38 +++++++++----------
+ vspm-module/files/vspm/include/isu_drv.h      | 34 ++++++++---------
  2 files changed, 36 insertions(+), 36 deletions(-)
 
 diff --git a/vspm-module/files/vspm/drv/isu/isu_drv_local.h b/vspm-module/files/vspm/drv/isu/isu_drv_local.h
@@ -149,5 +148,5 @@ index 3aff50b..9a13d1c 100644
  
  
 -- 
-2.7.4
+2.17.1
 

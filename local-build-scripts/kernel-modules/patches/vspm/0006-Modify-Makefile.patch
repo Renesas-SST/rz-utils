@@ -1,8 +1,7 @@
-From c25e2b8f77872ca8043bbd5de7b31db95ab6fa57 Mon Sep 17 00:00:00 2001
+From 5d3b6fa13b44a4df7c1e7e847385be94767ae906 Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Fri, 2 Jul 2021 09:50:51 +0700
-Subject: [PATCH 3/3] Modify Makefile
-Upstream-Status: Pending
+Subject: [PATCH 04/16] Modify Makefile
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
 ---
@@ -10,7 +9,7 @@ Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/vspm-module/files/vspm/drv/Makefile b/vspm-module/files/vspm/drv/Makefile
-index a6a06bb..e5f3512 100644
+index a6a06bb..4a0acf8 100644
 --- a/vspm-module/files/vspm/drv/Makefile
 +++ b/vspm-module/files/vspm/drv/Makefile
 @@ -1,9 +1,10 @@

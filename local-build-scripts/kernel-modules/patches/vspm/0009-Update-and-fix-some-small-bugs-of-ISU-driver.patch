@@ -1,8 +1,7 @@
-From 91f0feb68dec9af7743c1a3056cdf292118b53f0 Mon Sep 17 00:00:00 2001
+From 249972a7a8c0a1ea3a830af2e982d033586b8b2f Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Wed, 25 Aug 2021 16:23:36 +0700
-Subject: [PATCH 7/7] Update and fix some small bugs of ISU driver
-Upstream-Status: Pending
+Subject: [PATCH 07/16] Update and fix some small bugs of ISU driver
 
 This commit fixed following issues:
     1. Fix unnecessarily checking addr_c and stride_c in use case RBG and YUV422
@@ -13,8 +12,8 @@ This commit fixed following issues:
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
 ---
- vspm-module/files/vspm/drv/isu/isu_drv_par.c | 46 +++++++++++++++++-----------
- vspm-module/files/vspm/include/isu_drv.h     | 38 +++++++++++------------
+ vspm-module/files/vspm/drv/isu/isu_drv_par.c | 46 ++++++++++++--------
+ vspm-module/files/vspm/include/isu_drv.h     | 38 ++++++++--------
  2 files changed, 46 insertions(+), 38 deletions(-)
 
 diff --git a/vspm-module/files/vspm/drv/isu/isu_drv_par.c b/vspm-module/files/vspm/drv/isu/isu_drv_par.c
@@ -157,7 +156,7 @@ index 8e73a22..20ffc36 100755
  		break;
  	default:
 diff --git a/vspm-module/files/vspm/include/isu_drv.h b/vspm-module/files/vspm/include/isu_drv.h
-index d97aaff..8c1eae5 100644
+index b744b1e..3aff50b 100644
 --- a/vspm-module/files/vspm/include/isu_drv.h
 +++ b/vspm-module/files/vspm/include/isu_drv.h
 @@ -72,26 +72,26 @@
@@ -205,7 +204,7 @@ index d97aaff..8c1eae5 100644
  #define E_ISU_DL_FORMAT			(-682)
  
  #define ISU_RS_USE			(0x01) /* Resizer */
-@@ -199,8 +199,6 @@ struct isu_dst_t {
+@@ -202,8 +202,6 @@ struct isu_dst_t {
      unsigned int	addr_c;
      unsigned short	stride;
      unsigned short	stride_c;
@@ -215,5 +214,5 @@ index d97aaff..8c1eae5 100644
      unsigned char	swap;
      struct isu_csc_t	*csc;
 -- 
-2.7.4
+2.17.1
 

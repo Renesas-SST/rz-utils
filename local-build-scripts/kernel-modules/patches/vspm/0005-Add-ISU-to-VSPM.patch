@@ -1,8 +1,7 @@
-From 50ebfd1896c3f8ee56e8d81e412606eb78342eb2 Mon Sep 17 00:00:00 2001
+From 28b26116a58b14f1f598a1f8d99fd35112ea185d Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Fri, 2 Jul 2021 09:50:24 +0700
-Subject: [PATCH 2/3] Add ISU to VSPM
-Upstream-Status: Pending
+Subject: [PATCH 03/16] Add ISU to VSPM
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
 ---
@@ -394,7 +393,7 @@ index 2e1f09c..f00472c 100644
  	pdrv = kzalloc(sizeof(*pdrv), GFP_KERNEL);
  	if (!pdrv) {
 diff --git a/vspm-module/files/vspm/drv/vspm_main.h b/vspm-module/files/vspm/drv/vspm_main.h
-index 45093eb..3e6fdf2 100644
+index 45093eb..29fdc80 100644
 --- a/vspm-module/files/vspm/drv/vspm_main.h
 +++ b/vspm-module/files/vspm/drv/vspm_main.h
 @@ -1,7 +1,7 @@

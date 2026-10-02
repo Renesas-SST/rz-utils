@@ -1,12 +1,11 @@
-From 4ec67d5d6cd6b553cccf87888b0918cd546ef3a0 Mon Sep 17 00:00:00 2001
+From 1733e5f839a35f25a02ab7678386ffe466fc7184 Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Wed, 3 Nov 2021 10:04:32 +0700
-Subject: [PATCH 10/10] Fix wrong output size in setting case rs_par is NULL
-Upstream-Status: Pending
+Subject: [PATCH 10/16] Fix wrong output size in setting case rs_par is NULL
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
 ---
- vspm-module/files/vspm/drv/isu/isu_drv_par.c | 53 +++++++++++++++++++++++++---
+ vspm-module/files/vspm/drv/isu/isu_drv_par.c | 53 ++++++++++++++++++--
  1 file changed, 49 insertions(+), 4 deletions(-)
 
 diff --git a/vspm-module/files/vspm/drv/isu/isu_drv_par.c b/vspm-module/files/vspm/drv/isu/isu_drv_par.c
@@ -87,4 +86,5 @@ index 97acd61..ae09b70 100755
  		rs_info->y_scale |= ISU_RS_NO_RESIZE;
  		rs_info->pad_mode=0;
 -- 
-2.7.4
+2.17.1
+

@@ -1,8 +1,7 @@
-From cc791aaa6252bc3cc3f4d0ea25d5e5ae97dd7a0e Mon Sep 17 00:00:00 2001
+From cbddb481dea4fb3cc49c7bbf0d5552144f641c0e Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Tue, 6 Jul 2021 16:55:10 +0700
-Subject: [PATCH] Add ISU driver
-Upstream-Status: Pending
+Subject: [PATCH 01/16] Add ISU driver
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
 ---

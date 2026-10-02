@@ -1,8 +1,7 @@
-From e9b778b32efbab1abe0582083123901ccbbc5af2 Mon Sep 17 00:00:00 2001
+From 022e1f32808e3c77c68992ad4072d69bdaa98377 Mon Sep 17 00:00:00 2001
 From: Nhat Thieu <nhat.thieu.xr@renesas.com>
 Date: Mon, 9 Aug 2021 15:32:39 +0700
-Subject: [PATCH 6/6] Support MUTUAL mode for ISU
-Upstream-Status: Pending
+Subject: [PATCH 06/16] Support MUTUAL mode for ISU
 
 + Support MUTUAL mode for ISU
 + Add UV conv parameters definition
@@ -105,5 +104,5 @@ index d97aaff..b744b1e 100644
  #define ISU_ITU_COLOR			(0x00)	/* YUV[16,235/140] <-> RGB[0,255] */
  #define ISU_FULL_COLOR			(0x01)	/* Full scale */
 -- 
-2.7.4
+2.17.1
 
