@@ -102,6 +102,9 @@ fi
 
 kernel_setup() {
 	export LOCALVERSION=""
+	# "Linux version ... (user@host)": fixed identity instead of whoever/wherever built it.
+	export KBUILD_BUILD_USER="${KBUILD_BUILD_USER:-ubuntu}"
+	export KBUILD_BUILD_HOST="${KBUILD_BUILD_HOST:-rzv2h-rdk}"
 }
 
 # Merge the board defconfig
