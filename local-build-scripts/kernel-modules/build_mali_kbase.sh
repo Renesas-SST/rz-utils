@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build mali_kbase.ko, the PowerVR/Mali GPU out-of-tree kernel module, from the Renesas Mali DDK tarball.
+# Build mali_kbase.ko, the Mali-G31 GPU out-of-tree kernel module, from the Renesas Mali DDK tarball.
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

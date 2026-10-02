@@ -47,6 +47,12 @@ apply_patches() {
 	done < "${series}"
 }
 
+# Written once the patches are applied: a tree whose patching failed has no stamp and is
+# checked out and patched again on the next run.
+git_patched_stamp() {
+	echo "${EXT_MODULES_SRC_DIR}/${1}/.git/rz-utils-patched"
+}
+
 fetch_git() {
 	local name="$1" url="$2" rev="$3"
 	local dir="${EXT_MODULES_SRC_DIR}/${name}"
@@ -61,10 +67,27 @@ fetch_git() {
 		git -C "${dir}" fetch -q --all --tags || exit 1
 	fi
 
+	rm -f "$(git_patched_stamp "${name}")"
 	echo "Checking out ${name} at ${rev}"
 	git -C "${dir}" checkout -q -f "${rev}" || exit 1
 	git -C "${dir}" clean -qxfd || exit 1
 	apply_patches "${name}" "${dir}"
+	echo "${rev}" > "$(git_patched_stamp "${name}")"
+}
+
+# reset-src: clean checkout of the current commit, patched again (clone + patch if missing).
+reset_git_src() {
+	local name="$1" url="$2" rev="$3"
+	local dir="${EXT_MODULES_SRC_DIR}/${name}"
+
+	if [ ! -d "${dir}/.git" ]; then
+		fetch_git "${name}" "${url}" "${rev}"
+		return
+	fi
+	rm -f "$(git_patched_stamp "${name}")"
+	clean_repo "${dir}" "${name}"
+	apply_patches "${name}" "${dir}"
+	git -C "${dir}" rev-parse HEAD > "$(git_patched_stamp "${name}")"
 }
 
 # Only re-fetch if source is missing or on a different revision.
@@ -74,7 +97,8 @@ ensure_git_src() {
 	local have
 
 	have="$(git -C "${dir}" rev-parse HEAD 2>/dev/null)"
-	if [ -n "${have}" ] && [ "${have}" = "${rev}" ]; then
+	if [ -n "${have}" ] && [ "${have}" = "${rev}" ] &&
+	   [ "$(cat "$(git_patched_stamp "${name}")" 2>/dev/null)" = "${rev}" ]; then
 		echo "${name}: already at ${rev}"
 		return 0
 	fi
@@ -120,8 +144,9 @@ fetch_tar() {
 	rm -rf "${dir}"
 	mkdir -p "${dir}"
 	tar xf "${tarball}" -C "${dir}" || exit 1
-	echo "${sha}" > "${dir}/.srcrev"
 	apply_patches "${name}" "${patch_dir}" "${strip}"
+	# Only once patched: a failed patch leaves no .srcrev, so the next run extracts again
+	echo "${sha}" > "${dir}/.srcrev"
 }
 
 ensure_tar_src() {
