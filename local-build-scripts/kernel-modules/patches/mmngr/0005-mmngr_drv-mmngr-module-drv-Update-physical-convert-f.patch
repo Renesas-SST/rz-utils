@@ -1,26 +1,27 @@
-From 01019ba0c616e07b4cade2b9b0a65098eb18c887 Mon Sep 17 00:00:00 2001
-From: hienhuynh <hien.huynh.px@renesas.com>
-Date: Tue, 8 Mar 2022 14:45:47 +0700
-Subject: [PATCH] mmngr_drv: mmngr-module: drv: Update physical convert
+From 45affb5c73cf7c975aa90d66a05b335b6eb41fd0 Mon Sep 17 00:00:00 2001
+From: trungvanle <trung.le.xk@renesas.com>
+Date: Wed, 18 Sep 2024 11:41:07 +0700
+Subject: [PATCH 5/8] mmngr_drv: mmngr-module: drv: Update physical convert
+ func
 
 Reduce parameter of physical convert fuction
 
 Signed-off-by: Triet Nguyen <triet.nguyen.te@renesas.com>
 Signed-off-by: hienhuynh <hien.huynh.px@renesas.com>
-Upstream-Status: Pending
+Signed-off-by: trungvanle <trung.le.xk@renesas.com>
 ---
- .../mmngr-module/files/mmngr/drv/mmngr_drv.c  | 32 +++++++++----------
- 1 file changed, 16 insertions(+), 16 deletions(-)
+ .../mmngr-module/files/mmngr/drv/mmngr_drv.c  | 26 ++++++++++++-------
+ 1 file changed, 16 insertions(+), 10 deletions(-)
 
 diff --git a/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c b/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
-index de66d8d..b384c8e 100644
+index 2eabed1..c186a72 100644
 --- a/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
 +++ b/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
-@@ -841,23 +841,21 @@ static int mm_ioc_share(int __user *in, struct MM_PARAM *out)
+@@ -841,21 +841,21 @@ static int mm_ioc_share(int __user *in, struct MM_PARAM *out)
  }
  
  /* change virtual address to physical address */
--static void mm_cnv_addr(void *out)
+-static void mm_cnv_addr(int __user *out)
 +static void mm_cnv_addr(struct MM_PARAM *tmp)
  {
  	struct vm_area_struct *vma;
@@ -33,8 +34,6 @@ index de66d8d..b384c8e 100644
  
 -	for (lp = 0; lp < 2; lp++) {
 -		vma = find_vma(mm, tmp[lp].user_virt_addr);
--		if(!vma)
--			continue;
 -		start = tmp[lp].user_virt_addr & PAGE_MASK;
 -		follow_pfn(vma, start, &pfn);
 -		tmp[lp].hard_addr = pfn << PAGE_SHIFT;
@@ -48,22 +47,11 @@ index de66d8d..b384c8e 100644
  
  	return;
  }
-@@ -935,7 +933,6 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
- 	struct MM_PARAM	*p = file->private_data;
- 	struct MM_CACHE_PARAM *cachep;
- 	struct device	*mm_dev;
--	struct MM_PARAM temp[2];
- 
- 	mm_dev = mm_drvdata->mm_dev;
- 
-@@ -997,11 +994,14 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+@@ -994,8 +994,14 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  					cachep->len, DMA_TO_DEVICE);
  		break;
  	case MM_IOC_VTOP:   /* change virtual address to physical address */
--		copy_from_user(&temp, (const void __user *)arg,
--				2 * sizeof(struct MM_PARAM));
--		mm_cnv_addr(&temp);
--		copy_to_user((void*)arg, &temp, 2 * sizeof(struct MM_PARAM));
+-		mm_cnv_addr((int __user *)arg);
 -		break;
 +		{
 +			struct MM_PARAM temp;
@@ -76,3 +64,6 @@ index de66d8d..b384c8e 100644
  	default:
  		pr_err("%s MMD CMD EFAULT\n", __func__);
  		ret = -EFAULT;
+-- 
+2.17.1
+

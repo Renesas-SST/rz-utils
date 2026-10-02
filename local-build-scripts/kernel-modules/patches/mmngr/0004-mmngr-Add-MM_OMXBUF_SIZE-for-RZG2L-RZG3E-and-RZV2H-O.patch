@@ -1,9 +1,7 @@
-From f3e6bb21352e43021278a69bae41f034723ba0d1 Mon Sep 17 00:00:00 2001
+From a3735dc13635dc16666aa901b8bee64612921306 Mon Sep 17 00:00:00 2001
 From: hienhuynh <hien.huynh.px@renesas.com>
 Date: Tue, 8 Mar 2022 14:24:23 +0700
-Subject: [PATCH] mmngr: Add MM_OMXBUF_SIZE for RZG2L, RZG3E and RZV2H OMX
-
-Upstream-Status: Pending
+Subject: [PATCH 4/9] mmngr: Add MM_OMXBUF_SIZE for RZG2L, RZG3E and RZV2H OMX
 
 This commit adds:
     MM_OMXBUF_SIZE (128 MB) for RZ/G2L Series
@@ -15,7 +13,7 @@ Signed-off-by: trungvanle <trung.le.xk@renesas.com>
  1 file changed, 13 insertions(+), 1 deletion(-)
 
 diff --git a/mmngr_drv/mmngr/mmngr-module/files/mmngr/include/mmngr_private.h b/mmngr_drv/mmngr/mmngr-module/files/mmngr/include/mmngr_private.h
-index 0c7f8c4..a868f21 100644
+index 56ab1f6..dd93fa3 100644
 --- a/mmngr_drv/mmngr/mmngr-module/files/mmngr/include/mmngr_private.h
 +++ b/mmngr_drv/mmngr/mmngr-module/files/mmngr/include/mmngr_private.h
 @@ -1,7 +1,7 @@
@@ -27,7 +25,7 @@ index 0c7f8c4..a868f21 100644
  
   License        Dual MIT/GPLv2
  
-@@ -182,6 +182,18 @@ static void mm_exit(void);
+@@ -204,6 +204,18 @@ static void mm_exit(void);
  
  static int validate_memory_map(void);
  
@@ -46,3 +44,6 @@ index 0c7f8c4..a868f21 100644
  #ifdef MMNGR_SALVATORX
  #define MM_OMXBUF_SIZE		(256 * 1024 * 1024)
  #endif /* MMNGR_SALVATORX */
+-- 
+2.25.1
+

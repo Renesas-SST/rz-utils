@@ -1,0 +1,112 @@
+From: Cong Nguyen <congnguyenvan002@gmail.com>
+Subject: [PATCH] mmngr: support Linux 6.18 kernel APIs
+
+Port the latest meta-rz-bsp mmngr (0001-0010) to Linux 6.18:
+- follow_pfn() was removed (6.10). Use follow_pfnmap_start/end() for
+  VM_IO|VM_PFNMAP mappings (rgnmm, vb2 dma-contig) and get_user_pages()
+  for page backed mappings, which follow_pfnmap_start() rejects with
+  -EINVAL. On failure hard_addr is cleared instead of returning garbage.
+- vma->vm_flags is read-only since 6.3, use vm_flags_set().
+- platform_driver .remove returns void since 6.11.
+
+Upstream-Status: Pending
+---
+--- a/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
++++ b/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
+@@ -847,16 +847,49 @@
+ 	struct mm_struct *mm = current->mm;
+ 	unsigned long start;
+ 	unsigned long pfn;
+-	int ret = 0;
++	struct page *page;
++	int ret;
++
++	tmp->hard_addr = 0;
+ 
+ 	mmap_read_lock(mm);
+-	vma = find_vma(mm, tmp->user_virt_addr);
+ 	start = tmp->user_virt_addr & PAGE_MASK;
+-	ret = follow_pfn(vma, start, &pfn);
+-	if(ret != 0)
+-		 pr_warn("Could not convert virt[0x%lx] addr", tmp->user_virt_addr);
+-	tmp->hard_addr = pfn << PAGE_SHIFT;
++	vma = find_vma(mm, start);
++	if (!vma || start < vma->vm_start) {
++		ret = -EFAULT;
++		goto out;
++	}
++
++	if (vma->vm_flags & (VM_IO | VM_PFNMAP)) {
++		/* rgnmm, vb2 dma-contig and other remap_pfn_range() mappings */
++		struct follow_pfnmap_args args = { .vma = vma, .address = start };
++
++		ret = follow_pfnmap_start(&args);
++		if (ret)
++			goto out;
++		pfn = args.pfn;
++		follow_pfnmap_end(&args);
++	} else {
++		/*
++		 * Page backed mapping: follow_pfn() used to handle these too,
++		 * follow_pfnmap_start() rejects them.
++		 */
++		ret = get_user_pages(start, 1, 0, &page);
++		if (ret != 1) {
++			ret = ret < 0 ? ret : -EFAULT;
++			goto out;
++		}
++		pfn = page_to_pfn(page);
++		put_page(page);
++		ret = 0;
++	}
++
++	tmp->hard_addr = (pfn << PAGE_SHIFT) | (tmp->user_virt_addr & ~PAGE_MASK);
++out:
+ 	mmap_read_unlock(mm);
++	if (ret)
++		pr_warn("Could not convert virt[0x%lx] addr, ret=%d\n",
++			tmp->user_virt_addr, ret);
+ 
+ 	return ret;
+ }
+@@ -1057,9 +1090,9 @@
+ 
+ 	if (p->flag != MM_KERNELHEAP_CACHED) {
+ 		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
+-		vma->vm_flags |= (VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
++		vm_flags_set(vma, VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
+ 	} else {
+-		vma->vm_flags |= (VM_DONTEXPAND | VM_DONTDUMP);
++		vm_flags_set(vma, VM_DONTEXPAND | VM_DONTDUMP);
+ 	}
+ 
+ 	if (remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
+@@ -1795,7 +1828,7 @@
+ 	return -1;
+ }
+ 
+-static int mm_remove(struct platform_device *pdev)
++static void mm_remove(struct platform_device *pdev)
+ {
+ 	u32 i;
+ 
+@@ -1827,8 +1860,6 @@
+ 			(dma_addr_t)mm_drvdata->reserve_phy_addr);
+ 
+ 	kfree(mm_drvdata);
+-
+-	return 0;
+ }
+ 
+ static const struct of_device_id mm_of_match[] = {
+--- a/mmngr_drv/mmngr/mmngr-module/files/mmngr/include/mmngr_private.h
++++ b/mmngr_drv/mmngr/mmngr-module/files/mmngr/include/mmngr_private.h
+@@ -176,7 +176,7 @@
+ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+ static int mmap(struct file *filp, struct vm_area_struct *vma);
+ static int mm_probe(struct platform_device *pdev);
+-static int mm_remove(struct platform_device *pdev);
++static void mm_remove(struct platform_device *pdev);
+ static int mm_init(void);
+ static void mm_exit(void);
+ 

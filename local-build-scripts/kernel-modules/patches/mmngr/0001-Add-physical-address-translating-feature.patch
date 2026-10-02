@@ -1,8 +1,7 @@
-From 4c48e13bde931f2ff1e2a6180fc4ec755ffb3c18 Mon Sep 17 00:00:00 2001
+From 99f303c470ef552d20a94e890bf942b7d1b45862 Mon Sep 17 00:00:00 2001
 From: hienhuynh <hien.huynh.px@renesas.com>
 Date: Tue, 8 Mar 2022 14:00:17 +0700
-Subject: [PATCH 01/11] Add physical address translating feature
-Upstream-Status: Pending
+Subject: [PATCH 1/8] Add physical address translating feature
 
 This patch adds physical address translating feature
 
@@ -76,5 +75,5 @@ index 5f137c6..f8a60bd 100644
  
  #endif	/* __MMNGR_PRIVATE_CMN_H__ */
 -- 
-2.25.1
+2.17.1
 

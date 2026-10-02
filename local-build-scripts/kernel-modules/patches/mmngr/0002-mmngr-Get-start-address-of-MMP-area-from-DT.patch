@@ -1,8 +1,7 @@
-From 1cfa636aafd0d7167d5ee876a0ae4f8e535d6589 Mon Sep 17 00:00:00 2001
+From f38e6d5da08a053a4a0afba625630f2bbbe3ae17 Mon Sep 17 00:00:00 2001
 From: hienhuynh <hien.huynh.px@renesas.com>
 Date: Tue, 8 Mar 2022 14:10:07 +0700
-Subject: [PATCH 03/11] mmngr: Get start address of MMP area from DT
-Upstream-Status: Pending
+Subject: [PATCH 2/8] mmngr: Get start address of MMP area from DT
 
 Instead of hardcode, we will get start address of MMP area from DT
 for flexible usage. It also check the MMP area if inside legacy area of
@@ -16,7 +15,7 @@ Signed-off-by: hienhuynh <hien.huynh.px@renesas.com>
  2 files changed, 52 insertions(+), 14 deletions(-)
 
 diff --git a/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c b/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
-index 0889f26..107a90c 100644
+index db4324c..5d31aa6 100644
 --- a/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
 +++ b/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
 @@ -95,7 +95,10 @@ static bool			have_lossy_entries;
@@ -31,7 +30,7 @@ index 0889f26..107a90c 100644
  static bool			ipmmu_common_init_done;
  static bool			is_mmu_tlb_disabled;
  static u64			ipmmu_addr_section_0;
-@@ -1141,6 +1144,19 @@ static int validate_memory_map(void)
+@@ -1139,6 +1142,19 @@ static int validate_memory_map(void)
  	const char *buf_name;
  #endif
  
@@ -51,7 +50,7 @@ index 0889f26..107a90c 100644
  	if (mm_kernel_reserve_size < MM_OMXBUF_SIZE) {
  		pr_warn("The size (0x%x) of OMXBUF is over "\
  			"the kernel reserved size (0x%llx) for Multimedia.\n",
-@@ -1215,6 +1231,32 @@ static int _parse_reserved_mem_dt(struct device_node *np,
+@@ -1213,6 +1229,32 @@ static int _parse_reserved_mem_dt(struct device_node *np,
  	return ret;
  }
  
@@ -84,7 +83,7 @@ index 0889f26..107a90c 100644
  static int parse_reserved_mem_dt(struct device_node *np)
  {
  	int ret = 0;
-@@ -1705,6 +1747,14 @@ static int mm_probe(struct platform_device *pdev)
+@@ -1703,6 +1745,14 @@ static int mm_probe(struct platform_device *pdev)
  	struct device_node	*np = dev->of_node;
  	unsigned long		mm_omxbuf_size;
  
@@ -99,7 +98,7 @@ index 0889f26..107a90c 100644
  	ret = parse_reserved_mem_dt(np);
  	if (ret) {
  		pr_err("%s MMD ERROR\n", __func__);
-@@ -1722,7 +1772,7 @@ static int mm_probe(struct platform_device *pdev)
+@@ -1720,7 +1770,7 @@ static int mm_probe(struct platform_device *pdev)
  #else
  	mm_omxbuf_size = mm_kernel_reserve_size - MM_SSPBUF_SIZE;
  #endif
@@ -136,5 +135,5 @@ index ba1f0d1..56ab1f6 100644
  #endif /* MMNGR_EBISU */
  
 -- 
-2.25.1
+2.17.1
 
