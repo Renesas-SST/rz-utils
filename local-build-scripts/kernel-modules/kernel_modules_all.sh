@@ -5,7 +5,6 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${SCRIPT_DIR}"
 
 cmd="${1:-all}"
 
@@ -18,9 +17,9 @@ FAILED=0
 for name in "${MODULES[@]}"; do
 	echo
 	echo '================================================================'
-	echo "  ${name}: ./build_${name}.sh ${cmd}"
+	echo "  ${name}: build_${name}.sh ${cmd}"
 	echo '================================================================'
-	if "./build_${name}.sh" "${cmd}"; then
+	if "${SCRIPT_DIR}/build_${name}.sh" "${cmd}"; then
 		RESULT["${name}"]="OK"
 	else
 		RESULT["${name}"]="FAILED"

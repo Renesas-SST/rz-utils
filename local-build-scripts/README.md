@@ -42,6 +42,11 @@ sudo apt install \
 ## Usage
 
 The scripts can be run from any directory; the examples below run them from this one.
+Relative paths (`WORKDIR`, `KERNEL_DIR`, ...) are relative to the directory you run from:
+
+```bash
+cd ~/rdk && WORKDIR=ws <path>/rz-utils/local-build-scripts/main_build.sh all    # sources and output in ~/rdk/ws
+```
 
 ```
 $ ./main_build.sh <target_build> [<sub_command>] [<module>]
@@ -97,7 +102,6 @@ Review it before a build. Every setting can also be overridden from the environm
 | Setting | Use |
 |---|---|
 | `WORKDIR` | base directory of the sources and outputs below (default `/workspace/workspace`) |
-| `GIT_SHALLOW` | `1` (default): git sources are shallow, only the commit that is built (kernel branch: `--depth 1 --single-branch`); `0`: full history, an existing shallow tree is unshallowed on its next use |
 | `KERNEL_DIR` | Linux kernel source, cloned from `KERNEL_REPO` / `KERNEL_BRANCH` if missing (never pulled or reset afterwards) |
 | `KERNEL_SRCREV` | optional: pin the kernel to a commit (checked out with `-f`, local changes are lost) |
 | `KERNEL_VARIANT` | optional: merge `kernel-config/<name>.config` on top of `renesas_defconfig`, e.g. `preempt-rt` |

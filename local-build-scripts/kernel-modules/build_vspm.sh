@@ -3,11 +3,9 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${SCRIPT_DIR}/.."
-source ./config.ini
-source ./common.sh
-cd "${SCRIPT_DIR}"
-source ./common_modules.sh
+source "${SCRIPT_DIR}/../config.ini"
+source "${SCRIPT_DIR}/../common.sh"
+source "${SCRIPT_DIR}/common_modules.sh"
 
 if [ -z "${KERNEL_DIR:-}" ]; then
 	echo "There is no Linux Kernel source at ${KERNEL_DIR:-} or it does not set properly at config.ini file."

@@ -4,6 +4,14 @@
 export ARCH="${ARCH:-arm64}"
 export CROSS_COMPILE="${CROSS_COMPILE:-aarch64-linux-gnu-}"
 
+# Paths of config.ini or the environment may be relative to the directory the scripts are
+# run from: make them absolute (and exported) before any script changes directory.
+for _v in WORKDIR KERNEL_DIR EXT_MODULES_SRC_DIR KERNEL_MODULES_OUTPUT_DIR \
+	  IPL_WORK_DIR IPL_OUT_DIR IPL_FEATURES_FILE; do
+	[ -n "${!_v:-}" ] && export "${_v}=$(realpath -m "${!_v}")"
+done
+unset _v
+
 # GIT_SHALLOW=0: fetch the full history of a shallow tree (no-op otherwise)
 git_unshallow() {
 	local dir="$1"
