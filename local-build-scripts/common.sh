@@ -28,11 +28,10 @@ ensure_src_dir() {
 	git clone --branch "${branch}" "${repo}" "${dir}"
 }
 
-# Like ensure_src_dir() but pins to a commit; sets SRC_JUST_SYNCED=1 if it actually synced.
+# Like ensure_src_dir() but pins to a commit (checked out with -f).
 ensure_src_dir_at_rev() {
 	local dir="$1" repo="$2" rev="$3" label="$4"
-	local have just_cloned=0
-	SRC_JUST_SYNCED=0
+	local have
 
 	if [ -z "${repo}" ] || [ -z "${rev}" ]; then
 		echo "There is no ${label} source at ${dir}, and no repo/rev configured in config.ini to clone it automatically." >&2
@@ -48,7 +47,6 @@ ensure_src_dir_at_rev() {
 		fi
 		echo "${label} source not found at ${dir}, cloning ${repo}..."
 		git clone -q "${repo}" "${dir}"
-		just_cloned=1
 	fi
 
 	# Repo URL changed since last clone (e.g. fork move) -- repoint origin instead of erroring.
@@ -63,8 +61,6 @@ ensure_src_dir_at_rev() {
 	have="$(git -C "${dir}" rev-parse HEAD 2>/dev/null)"
 	if [ "${have}" = "${rev}" ]; then
 		echo "${label}: already at ${rev}"
-		# A clone landing exactly on ${rev} skips the checkout below, so flag it here too.
-		[ "${just_cloned}" = "1" ] && SRC_JUST_SYNCED=1
 		return 0
 	fi
 
@@ -73,29 +69,9 @@ ensure_src_dir_at_rev() {
 	fi
 	echo "${label}: checking out ${rev}"
 	git -C "${dir}" checkout -q -f "${rev}"
-	SRC_JUST_SYNCED=1
 }
 
-# Apply <patch_dir>/series (filenames, one per line) onto <src_dir> with patch -p1; no-op if missing.
-apply_series_patches() {
-	local patch_dir="$1" src_dir="$2" label="$3"
-	local series="${patch_dir}/series"
-	local p
-
-	[ -f "${series}" ] || return 0
-
-	while read -r p; do
-		[ -z "${p}" ] && continue
-		case "${p}" in \#*) continue;; esac
-		echo "${label}: applying ${p}"
-		patch -p1 -d "${src_dir}" --no-backup-if-mismatch -i "${patch_dir}/${p}" || {
-			echo "Error: failed to apply ${label} patch ${p}" >&2
-			exit 1
-		}
-	done < "${series}"
-}
-
-# Reset <dir> to a pristine checkout (no re-clone) and flag SRC_JUST_SYNCED=1 to reapply patches.
+# Reset <dir> to a pristine checkout of its current commit (no re-clone).
 clean_repo() {
 	local dir="$1" label="$2"
 
@@ -108,7 +84,6 @@ clean_repo() {
 	git -C "${dir}" reset -q
 	git -C "${dir}" checkout -q .
 	git -C "${dir}" clean -q -fdx
-	SRC_JUST_SYNCED=1
 }
 
 _usage="
