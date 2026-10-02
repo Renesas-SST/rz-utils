@@ -41,7 +41,7 @@ sudo apt install \
 
 ## Usage
 
-Run the scripts from this directory.
+The scripts can be run from any directory; the examples below run them from this one.
 
 ```
 $ ./main_build.sh <target_build> [<sub_command>] [<module>]
@@ -81,6 +81,11 @@ KERNEL_VARIANT=preempt-rt ./main_build.sh kernel all
 `./main_build.sh` without arguments prints the full help. Each script also runs on its own:
 `./build_kernel.sh <sub_command>`, `kernel-modules/build_<module>.sh <sub_command>`,
 `ipl_build/build_ipl.sh [ver1|ver101]`.
+
+The kernel build targets (`image`, `dtbs`, `modules`, `modules-install`, `all`) run
+`defconfig` only when there is no `.config`, or when the defconfig, `KERNEL_VARIANT` or its
+fragment changed since the last `defconfig`. Otherwise they build the current `.config`, so
+`menuconfig` changes are kept until the next `./main_build.sh kernel defconfig`.
 
 The IPL default mode is remoteproc: set `enable_overlay_remoteproc=1` in `boot/uEnv.txt`
 (see `ipl_build/uEnv.txt`), and leave it unset in the other Multi-OS modes.

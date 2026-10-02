@@ -1,7 +1,8 @@
 #!/bin/bash
 
-source ./config.ini
-source ./common.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/config.ini"
+source "${SCRIPT_DIR}/common.sh"
 
 # Overrides common.sh's show_help with one scoped to this script.
 show_help() {
@@ -18,14 +19,18 @@ Build the Linux kernel (${KERNEL_DIR}). Called directly or via
                       re-cloning (see clean_repo() in common.sh)
     defconfig         Write .config: ${DEFCONFIG}, plus kernel-config/<KERNEL_VARIANT>.config
                       if config.ini sets KERNEL_VARIANT
-    menuconfig        make menuconfig on the current .config (run defconfig first if
-                      there is none)
-    image             defconfig, then build Image
-    dtbs              defconfig, then build device trees
-    modules           defconfig + Image + dtbs + build modules
+    menuconfig        make menuconfig on the current .config (defconfig first if
+                      there is none); kept by the build targets below
+    image             Build Image
+    dtbs              Build device trees
+    modules           Image + dtbs + build modules
     modules-install   modules, then install into KERNEL_MODULES_OUTPUT_DIR
     all               defconfig + Image + dtbs + modules + modules-install
-                      (i.e. everything -- same as modules-install)
+                      (i.e. everything, same as modules-install)
+
+  The build targets run defconfig only if there is no .config, or if DEFCONFIG,
+  KERNEL_VARIANT or its fragment changed since the last defconfig. Otherwise they
+  build the current .config, with the menuconfig changes.
 USAGE
 	exit 1
 }
@@ -36,14 +41,15 @@ if [ -z "${KERNEL_DIR}" ]; then
 	echo "Please recheck your setup"
 	exit 1
 fi
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # KERNEL_SRCREV pins a commit; otherwise clone KERNEL_BRANCH once and build the tree as it is
-if [ -n "${KERNEL_SRCREV:-}" ]; then
-	ensure_src_dir_at_rev "${KERNEL_DIR}" "${KERNEL_REPO:-}" "${KERNEL_SRCREV}" "Linux Kernel"
-else
-	ensure_src_dir "${KERNEL_DIR}" "${KERNEL_REPO:-}" "${KERNEL_BRANCH:-}" "Linux Kernel"
-fi
+ensure_kernel_src() {
+	if [ -n "${KERNEL_SRCREV:-}" ]; then
+		ensure_src_dir_at_rev "${KERNEL_DIR}" "${KERNEL_REPO:-}" "${KERNEL_SRCREV}" "Linux Kernel"
+	else
+		ensure_src_dir "${KERNEL_DIR}" "${KERNEL_REPO:-}" "${KERNEL_BRANCH:-}" "Linux Kernel"
+	fi
+}
 
 # RZ/V2H RDK ver1 and ver101 both build from the one defconfig
 DEFCONFIG="renesas_defconfig"
@@ -105,36 +111,55 @@ configure_kernel() {
 	if [ -n "${VARIANT_FRAGMENT}" ]; then
 		mk_config_merged
 	else
-		make ${DEFCONFIG}
+		make ${DEFCONFIG} || exit 1
 	fi
+}
+
+# What .config was generated from: DEFCONFIG, KERNEL_VARIANT and the fragment contents
+CONFIG_STAMP=".config.rz-utils"
+
+config_inputs() {
+	echo "${DEFCONFIG} ${KERNEL_VARIANT:-}"
+	cat "arch/arm64/configs/${DEFCONFIG}" ${VARIANT_FRAGMENT:+"${VARIANT_FRAGMENT}"} 2>/dev/null | sha256sum
+}
+
+# defconfig only if there is no .config or its inputs changed: keeps menuconfig changes
+ensure_config() {
+	kernel_setup
+	if [ -f .config ] && [ "$(cat "${CONFIG_STAMP}" 2>/dev/null)" = "$(config_inputs)" ]; then
+		echo "Using the current .config (run defconfig to regenerate it)"
+		return 0
+	fi
+	mk_defconfig
 }
 
 mk_image() {
 	echo '|============================================|'
 	echo '|          Build IMAGE ARM64 RENESAS         |'
 	echo '|============================================|'
-	make -j"$(nproc)" Image
+	make -j"$(nproc)" Image || exit 1
 }
 
 mk_dtbs() {
 	echo '|============================================|'
 	echo '|             Build device tree              |'
 	echo '|============================================|'
-	make -j"$(nproc)" dtbs
+	make -j"$(nproc)" dtbs || exit 1
 }
 
 mk_full_image() {
-	mk_defconfig
+	ensure_config
 	mk_image
 	mk_dtbs
 }
 
 mk_clean() {
-	make clean
+	make clean || exit 1
 }
 
 mk_distclean() {
-	make distclean
+	make distclean || exit 1
+	rm -f "${CONFIG_STAMP}"
 }
 
 # reset ${KERNEL_DIR}
@@ -145,11 +170,12 @@ mk_reset_src() {
 mk_defconfig() {
 	kernel_setup
 	configure_kernel
+	config_inputs > "${CONFIG_STAMP}"
 }
 
 mk_menuconfig() {
-	kernel_setup
-	make menuconfig
+	ensure_config
+	make menuconfig || exit 1
 }
 
 mk_modules() {
@@ -157,7 +183,7 @@ mk_modules() {
 	echo '|============================================|'
 	echo '|               Build modules                |'
 	echo '|============================================|'
-	make -j"$(nproc)" modules
+	make -j"$(nproc)" modules || exit 1
 	echo "Build completed successfully"
 }
 
@@ -173,12 +199,28 @@ mk_modules_install() {
 	echo '|              Install modules               |'
 	echo '|============================================|'
 	mkdir -p "${KERNEL_MODULES_OUTPUT_DIR}"
-	make INSTALL_MOD_PATH="${KERNEL_MODULES_OUTPUT_DIR}" modules_install
+	make INSTALL_MOD_PATH="${KERNEL_MODULES_OUTPUT_DIR}" modules_install || exit 1
 	rm -f "${KERNEL_MODULES_OUTPUT_DIR}"/lib/modules/*/build
 	echo "Installed kernel modules to ${KERNEL_MODULES_OUTPUT_DIR}"
 }
 
 # Main Linux Kernel build
+case ${1} in
+	'clean'|'distclean')
+		# Nothing to clean without a tree: do not clone one
+		if [ ! -d "${KERNEL_DIR}/.git" ]; then
+			echo "No kernel source at ${KERNEL_DIR}, nothing to clean"
+			exit 0
+		fi
+		;;
+	'reset-src'|'defconfig'|'menuconfig'|'image'|'dtbs'|'all'|'modules'|'modules-install')
+		ensure_kernel_src
+		;;
+	*)
+		show_help
+		;;
+esac
+
 echo "Starting the kernel build at ${KERNEL_DIR}"
 cd "${KERNEL_DIR}" || exit 1
 
@@ -199,11 +241,11 @@ case ${1} in
 		mk_menuconfig
 		;;
 	'image')
-		mk_defconfig
+		ensure_config
 		mk_image
 		;;
 	'dtbs')
-		mk_defconfig
+		ensure_config
 		mk_dtbs
 		;;
 	'all')
