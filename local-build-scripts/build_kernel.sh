@@ -124,16 +124,9 @@ mk_dtbs() {
 }
 
 mk_full_image() {
-	kernel_setup
-	configure_kernel
-	echo '|============================================|'
-	echo '|          Build IMAGE ARM64 RENESAS         |'
-	echo '|============================================|'
-	make -j"$(nproc)" Image
-	echo '|============================================|'
-	echo '|             Build device tree              |'
-	echo '|============================================|'
-	make -j"$(nproc)" dtbs
+	mk_defconfig
+	mk_image
+	mk_dtbs
 }
 
 mk_clean() {
