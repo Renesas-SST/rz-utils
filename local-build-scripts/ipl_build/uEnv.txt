@@ -28,7 +28,8 @@ enable_overlay_remoteproc=1
 # ---------------------------------------------------------------------------
 # Optional overrides (defaults shown)
 # ---------------------------------------------------------------------------
-# dtbfile is set by U-Boot for each board (rzv2h-rdk-ver1.dtb or
-# rzv2h-rdk-ver101.dtb); do not set it here so this file works on both.
+# dtbfile is set by U-Boot for each board (dtb/renesas/rzv2h-rdk-ver1.dtb or
+# dtb/renesas/rzv2h-rdk-ver101.dtb, under boot/); do not set it here so this
+# file works on both.
 #mmc_overlays=boot/dtb/renesas/overlays
 #dtbo_addr=0x48040000

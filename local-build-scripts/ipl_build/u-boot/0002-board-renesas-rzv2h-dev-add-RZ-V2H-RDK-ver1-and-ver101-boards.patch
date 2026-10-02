@@ -26,7 +26,8 @@ Common differences from EVK ver1:
   (no SPI2), P95/P96/P66/P67 are PCM/CAM LEDs (no USB2.0 VBUSEN/OVRCUR).
 - Default environment boots from SD0 (mmc0 partition 2): import
   boot/uEnv.txt if present, then load OpenCV/Codec binaries, Image and
-  boot/<CONFIG_DEFAULT_DEVICE_TREE>.dtb, apply the DT overlays enabled
+  boot/dtb/renesas/<CONFIG_DEFAULT_DEVICE_TREE>.dtb (where the kernel
+  package installs it), apply the DT overlays enabled
   with enable_overlay_{audio_codec,can,spi,remoteproc}, and boot with
   root=${rootdev}.
 
@@ -1538,7 +1539,7 @@ index 534499430c..e5d0d31455 100644
 +	"usb_pgood_delay=2000\0"	\
 +	"bootm_size=0x10000000\0"	\
 +	"fdtfile=boot/uEnv.txt\0"	\
-+	"dtbfile=" CONFIG_DEFAULT_DEVICE_TREE ".dtb\0"	\
++	"dtbfile=dtb/renesas/" CONFIG_DEFAULT_DEVICE_TREE ".dtb\0"	\
 +	"mmcdev=0\0"	\
 +	"mmcpart=2\0"	\
 +	"rootdev=/dev/mmcblk0p2\0"	\

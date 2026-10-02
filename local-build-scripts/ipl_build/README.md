@@ -5,8 +5,8 @@ RZ/V2H RDK boards from source.
 
 | Board | RAM | Ethernet PHY reset | TF-A `BOARD` | U-Boot defconfig | Kernel DT loaded by U-Boot |
 |---|---|---|---|---|---|
-| RDK ver1 | 16GB LPDDR4X (same as RZ/V2H EVK) | none (RC power-on reset) | `rdk_1` | `rzv2h-rdk-ver1_defconfig` | `boot/rzv2h-rdk-ver1.dtb` |
-| RDK ver101 | 8GB Foresee LPDDR4X (4GB per channel) | P47 | `rdk_101` | `rzv2h-rdk-ver101_defconfig` | `boot/rzv2h-rdk-ver101.dtb` |
+| RDK ver1 | 16GB LPDDR4X (same as RZ/V2H EVK) | none (RC power-on reset) | `rdk_1` | `rzv2h-rdk-ver1_defconfig` | `boot/dtb/renesas/rzv2h-rdk-ver1.dtb` |
+| RDK ver101 | 8GB Foresee LPDDR4X (4GB per channel) | P47 | `rdk_101` | `rzv2h-rdk-ver101_defconfig` | `boot/dtb/renesas/rzv2h-rdk-ver101.dtb` |
 
 ## Contents
 
@@ -169,7 +169,7 @@ The first partition must start after the IPL area, at 1MiB or later.
 - Use the IPL that matches the board. A ver101 IPL on a ver1 board (or the other way
   round) programs the wrong DDR configuration.
 - U-Boot imports `boot/uEnv.txt` from mmc0 (microSD) partition 2 and applies the DT overlays
-  enabled there. It then boots `boot/Image` with `boot/<board>.dtb` and `root=${rootdev}`.
+  enabled there. It then boots `boot/Image` with `boot/dtb/renesas/<board>.dtb` and `root=${rootdev}`.
   See `uEnv.txt`.
 - The kernel remoteproc nodes (`cm33`, `cr8_0`, `cr8_1`) and their OpenAMP carveouts
   (`vdev0*` at 0x43000000–0x434fffff) are in the overlay `rzv2h-rdk-remoteproc.dtbo`, not in
