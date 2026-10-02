@@ -14,28 +14,21 @@ Build the Linux kernel (${KERNEL_DIR}). Called directly or via
   <sub_command>:
     clean             make clean
     distclean         make distclean
-    reset-src         Reset KERNEL_DIR to a clean checkout + reapply kernel_patches/series,
-                      without re-cloning (see clean_repo() in common.sh)
-    defconfig         Write config.ini's DEFCONFIG (kernel_setup + make <defconfig>)
-    menuconfig        defconfig, then make menuconfig
+    reset-src         Reset KERNEL_DIR to a clean checkout of its current commit, without
+                      re-cloning (see clean_repo() in common.sh)
+    defconfig         Write .config: ${DEFCONFIG}, plus kernel-config/<KERNEL_VARIANT>.config
+                      if config.ini sets KERNEL_VARIANT
+    menuconfig        make menuconfig on the current .config (run defconfig first if
+                      there is none)
     image             defconfig, then build Image
     dtbs              defconfig, then build device trees
     modules           defconfig + Image + dtbs + build modules
     modules-install   modules, then install into KERNEL_MODULES_OUTPUT_DIR
     all               defconfig + Image + dtbs + modules + modules-install
                       (i.e. everything -- same as modules-install)
-
-Platform override: PLAT=RZV2H-RDK ./build_kernel.sh all
-  (defaults to config.ini's PLATFORM, which selects the DEFCONFIG -- see the
-  KERN_DEFCONFIG map in this script)
 USAGE
 	exit 1
 }
-
-# if PLATFORM is already exported from main_build.sh, keep it
-if [ -n "${PLATFORM:-}" ] && [ -n "${PLAT:-}" ]; then
-	PLATFORM="$PLAT"
-fi
 
 # Check Linux Kernel location
 if [ -z "${KERNEL_DIR}" ]; then
@@ -44,46 +37,19 @@ if [ -z "${KERNEL_DIR}" ]; then
 	exit 1
 fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-KERNEL_PATCH_DIR="${SCRIPT_DIR}/kernel_patches"
 
-# Ensure KERNEL_SRCREV 
+# KERNEL_SRCREV pins a commit; otherwise clone KERNEL_BRANCH once and build the tree as it is
 if [ -n "${KERNEL_SRCREV:-}" ]; then
 	ensure_src_dir_at_rev "${KERNEL_DIR}" "${KERNEL_REPO:-}" "${KERNEL_SRCREV}" "Linux Kernel"
-	if [ "${SRC_JUST_SYNCED}" = "1" ]; then
-		apply_series_patches "${KERNEL_PATCH_DIR}" "${KERNEL_DIR}" "Linux Kernel"
-	fi
 else
 	ensure_src_dir "${KERNEL_DIR}" "${KERNEL_REPO:-}" "${KERNEL_BRANCH:-}" "Linux Kernel"
 fi
 
-# Default fallback
+# RZ/V2H RDK ver1 and ver101 both build from the one defconfig
 DEFCONFIG="renesas_defconfig"
-
-# Per-platform mapping -- all platforms currently build off the one shared renesas_defconfig.
-declare -A KERN_DEFCONFIG=(
-	["RZG2L-SBC"]="renesas_defconfig"
-	["RZG2L-EVK"]="renesas_defconfig"
-	["RZV2L-EVK"]="renesas_defconfig"
-	["RZV2H-EVK"]="renesas_defconfig"
-	["RZV2H-RDK"]="renesas_defconfig"
-)
-
-# Resolve DEFCONFIG
-if [[ "${PLATFORM}" == "RZ-CMN" ]]; then
-	DEFCONFIG="renesas_defconfig"
-elif [[ -n "${KERN_DEFCONFIG[$PLATFORM]+x}" ]]; then
-	DEFCONFIG="${KERN_DEFCONFIG[$PLATFORM]}"
-else
-    echo "Warning: Platform '${PLATFORM}' not recognised or do not have a specific defconfig. Falling back to common renesas_defconfig."
-    DEFCONFIG="renesas_defconfig"
-fi
-
 echo "Using DEFCONFIG=${DEFCONFIG}"
 
-# Add config from yocto
-COMMON_FRAGMENT="${SCRIPT_DIR}/kernel-config/yocto-common.config"
-
-# Optional, on top of the above: KERNEL_VARIANT=<name> merges kernel-config/<name>.config.
+# Optional: KERNEL_VARIANT=<name> merges kernel-config/<name>.config on top of DEFCONFIG.
 VARIANT_FRAGMENT=""
 if [ -n "${KERNEL_VARIANT:-}" ]; then
 	VARIANT_FRAGMENT="${SCRIPT_DIR}/kernel-config/${KERNEL_VARIANT}.config"
@@ -107,7 +73,7 @@ kernel_setup() {
 	export KBUILD_BUILD_HOST="${KBUILD_BUILD_HOST:-rzv2h-rdk}"
 }
 
-# Merge the board defconfig
+# Merge the KERNEL_VARIANT fragment into DEFCONFIG
 mk_config_merged() {
 	local defconfig_file="arch/arm64/configs/${DEFCONFIG}"
 
@@ -119,9 +85,8 @@ mk_config_merged() {
 	local merged
 	merged="$(mktemp -t rzv2h-merged-config.XXXXXX)"
 	cat "${defconfig_file}" > "${merged}"
-	# Fragments go last, in order, so each can override what came before it.
-	[ -f "${COMMON_FRAGMENT}" ] && cat "${COMMON_FRAGMENT}" >> "${merged}"
-	[ -n "${VARIANT_FRAGMENT}" ] && cat "${VARIANT_FRAGMENT}" >> "${merged}"
+	# The fragment goes last so it overrides the defconfig.
+	cat "${VARIANT_FRAGMENT}" >> "${merged}"
 
 	echo '|============================================|'
 	echo '|      Configure kernel (alldefconfig)       |'
@@ -135,9 +100,9 @@ mk_config_merged() {
 	fi
 }
 
-# Add config into a renesas_config
+# DEFCONFIG, merged with the KERNEL_VARIANT fragment if any
 configure_kernel() {
-	if [ -f "${COMMON_FRAGMENT}" ] || [ -n "${VARIANT_FRAGMENT}" ]; then
+	if [ -n "${VARIANT_FRAGMENT}" ]; then
 		mk_config_merged
 	else
 		make ${DEFCONFIG}
@@ -182,9 +147,6 @@ mk_distclean() {
 # reset ${KERNEL_DIR}
 mk_reset_src() {
 	clean_repo "${KERNEL_DIR}" "Linux Kernel"
-	if [ -n "${KERNEL_SRCREV:-}" ]; then
-		apply_series_patches "${KERNEL_PATCH_DIR}" "${KERNEL_DIR}" "Linux Kernel"
-	fi
 }
 
 mk_defconfig() {
@@ -198,8 +160,6 @@ mk_menuconfig() {
 }
 
 mk_modules() {
-	kernel_setup
-	configure_kernel
 	mk_full_image
 	echo '|============================================|'
 	echo '|               Build modules                |'
