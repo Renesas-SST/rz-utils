@@ -10,13 +10,12 @@ One self-contained script per module, no shared table to keep in sync:
 ```
 kernel-modules/
 ├── _lib.sh              # shared fetch/patch/build/install helpers, sourced by every script
-├── kernel_modules_all.sh # runs all 7 build_*.sh scripts in dependency order, prints a summary
+├── kernel_modules_all.sh # runs all 6 build_*.sh scripts in dependency order, prints a summary
 ├── build_mmngr.sh
 ├── build_mmngrbuf.sh
 ├── build_vspm.sh
 ├── build_vspm_if.sh     # depends on vspm being built first
 ├── build_mali_kbase.sh  # needs a local copy of the proprietary Mali DDK tarball (see below)
-├── build_88x2bu.sh      # WiFi: RTL8812BU/8822BU USB dongle, not in the extra/ deb set
 ├── build_uvcs_drv.sh    # Codec, sourced from the renesas-sst tarball (see below)
 └── patches/<name>/      # per-module patch series (series file + .patch files)
 ```
@@ -49,18 +48,25 @@ staged as `$KERNEL_DIR/include/vspm.symvers`):
 ./build_vspm_if.sh all
 ```
 
-`kernel_modules_all.sh` runs all 7 scripts in that dependency order for you (`fetch`/`all`/
+`kernel_modules_all.sh` runs all 6 scripts in that dependency order for you (`fetch`/`all`/
 `install`/`clean`, same subcommands), then prints an OK/FAILED summary per module:
 
 ```bash
 ./kernel_modules_all.sh install
 ```
 
-`mali_kbase` needs the proprietary Mali DDK tarball (`mali-g31_km_v1.3.0.tar.gz`), default
-`vendor/mali-g31_km_v1.3.0.tar.gz`; override with `MALI_DDK_TAR=...`.
+`mali_kbase` and `uvcs_drv` need proprietary tarballs that are not committed to this repo.
+Download them from the RZ/V2H AI SDK v8.00 and put them in `rz-utils/vendor/`; see
+[`vendor/README.md`](../../vendor/README.md) for the exact files, SDK paths and checksums.
 
-`uvcs_drv` is sourced from the renesas-sst tarball `uvcs_kernel_package.tar.bz2` (same as the
-Yocto recipe), default `vendor/uvcs_kernel_package.tar.bz2`; override with `UVCS_TAR=...`.
+- `mali_kbase`: `vendor/mali-g31_km_v1.3.0.tar.gz` (override with `MALI_DDK_TAR=...`)
+- `uvcs_drv`: `vendor/uvcs_kernel_package_v4.3.4.0.tar.bz2` (override with `UVCS_TAR=...`), same
+  package as the latest Yocto recipe in meta-rz-features/meta-rz-codecs. Packages older than v3.3.3.0
+  lack the RZ/V2H soc_device entry, so the codec never starts jobs. The Yocto recipe also sets
+  `options uvcs_drv ip_option=0x3000A` (modprobe.d).
+
+mmngr, mmngrbuf, vspm and vspm_if patch series follow the latest meta-rz-bsp recipes for RZ/V2H
+(mmngr also carries the meta-rz-drpai bug-fix bbappend as 0010), plus one Linux 6.18 port patch each.
 
 ## Status
 
@@ -70,9 +76,6 @@ hardware. `mali_kbase` probes real HW (`GPU identified as 0x3 arch 7.0.9 r0p0`).
 `uvcs_drv` — builds clean, verified via the Yocto recipe (full `core-image-weston` pass,
 2026-09-25); not yet re-`insmod`-tested on board with this exact source since dropping the AI
 SDK tarball.
-
-`88x2bu` — builds/installs clean; not yet `insmod`-tested (board unreachable), and not confirmed
-this V2H RDK actually carries an RTL8812BU dongle.
 
 `mali_kbase` runtime-PM bug (fixed): `power-domains = <&cpg>` on the GPU devicetree node made
 genpd double-manage clocks alongside `mali_kbase`'s own handling → `-ESHUTDOWN` (-108) and
@@ -89,15 +92,5 @@ weston + glmark2 with only patches 0001-0004 (0005/0006 removed, no longer neede
 - **mali_kbase**: no patch — build-invocation fix. `build_mali_kbase.sh` now runs the DDK's own
   `Makefile` (not `Kbuild` directly) so `CONFIG_MALI_*` reaches the driver; also needed real stub
   bodies in `mali_kbase_mem_migrate.c` (empty stubs left symbols undefined).
-- **88x2bu**: no patch; `build_88x2bu.sh` passes `KSRC`/`KVER` as `make` command-line vars since
-  the driver's own Makefile sets them with `:=`.
 - **uvcs_drv** (`0005`): void `.remove`; `del_timer()` → `timer_delete()`; `from_timer()` →
   `container_of()`.
-
-## WiFi driver support
-
-Checked against `renesas_defconfig`:
-- `lwfinger/rtw88` — redundant, already in-tree (`CONFIG_RTW88_8822BU/8723DU/8821CU/8822CU=m`).
-- Also in-tree: `CONFIG_MWIFIEX`, `CONFIG_BRCMFMAC`, `CONFIG_IWLWIFI`, `mt76x2`.
-- `morrownr/88x2bu` — the one real gap (RTL8812B, not covered by `rtw88`). `build_88x2bu.sh`
-  builds clean; only needed if the board's dongle is actually 8812B-based.
