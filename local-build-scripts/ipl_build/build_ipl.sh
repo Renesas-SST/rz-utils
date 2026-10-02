@@ -43,6 +43,7 @@
 #   OUT_DIR        where the IPL files are written (default: out/ next to this script)
 #   TFA_GIT        TF-A git URL or local mirror
 #   UBOOT_GIT      U-Boot git URL or local mirror
+#   GIT_SHALLOW    1 (default): fetch only the pinned commits; 0: full history
 #   JOBS           parallel make jobs (default: nproc)
 #
 # Host requirements: git, make, gcc, objcopy, OpenSSL headers (libssl-dev,
@@ -56,6 +57,7 @@ CROSS_COMPILE=${CROSS_COMPILE:-aarch64-linux-gnu-}
 WORK_DIR=$(realpath -m "${WORK_DIR:-${SCRIPT_DIR}/work}")
 OUT_DIR=$(realpath -m "${OUT_DIR:-${SCRIPT_DIR}/out}")
 JOBS=${JOBS:-$(nproc)}
+GIT_SHALLOW=${GIT_SHALLOW:-1}
 
 TFA_GIT=${TFA_GIT:-https://github.com/renesas-rz/rzg_trusted-firmware-a.git}
 TFA_REV=3c83dd6f498574d7e8d029c4b1545f36c6d6e083
@@ -129,14 +131,27 @@ check_features() {
 	return 0
 }
 
-# Clone (once) and check out a clean tree at the given revision
+# Clone (once) and check out a clean tree at the given revision.
+# GIT_SHALLOW=1: only that commit is fetched; 0: full history.
 checkout() {
 	local url=$1 rev=$2 dir=$3
 	if [ ! -d "${dir}/.git" ]; then
-		git clone --no-checkout "${url}" "${dir}"
+		if [ "${GIT_SHALLOW}" = 1 ]; then
+			git init -q "${dir}"
+			git -C "${dir}" remote add origin "${url}"
+		else
+			git clone --no-checkout "${url}" "${dir}"
+		fi
+	elif [ "${GIT_SHALLOW}" != 1 ] && \
+	     [ "$(git -C "${dir}" rev-parse --is-shallow-repository)" = true ]; then
+		git -C "${dir}" fetch --unshallow origin
 	fi
 	if ! git -C "${dir}" cat-file -e "${rev}^{commit}" 2>/dev/null; then
-		git -C "${dir}" fetch origin "${rev}" || git -C "${dir}" fetch origin
+		if [ "${GIT_SHALLOW}" = 1 ]; then
+			git -C "${dir}" fetch --depth 1 origin "${rev}"
+		else
+			git -C "${dir}" fetch origin "${rev}" || git -C "${dir}" fetch origin
+		fi
 	fi
 	git -C "${dir}" checkout -q -f "${rev}"
 	git -C "${dir}" clean -q -fdx

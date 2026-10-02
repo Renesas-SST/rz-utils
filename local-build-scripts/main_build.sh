@@ -23,7 +23,7 @@ run_ipl() {
 	esac
 
 	# shellcheck disable=SC2086
-	WORK_DIR="${IPL_WORK_DIR}" OUT_DIR="${IPL_OUT_DIR}" \
+	WORK_DIR="${IPL_WORK_DIR}" OUT_DIR="${IPL_OUT_DIR}" GIT_SHALLOW="${GIT_SHALLOW}" \
 		"${SCRIPT_DIR}/ipl_build/build_ipl.sh" "${opts[@]}" ${IPL_BOARDS}
 }
 

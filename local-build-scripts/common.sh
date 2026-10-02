@@ -4,11 +4,47 @@
 export ARCH="${ARCH:-arm64}"
 export CROSS_COMPILE="${CROSS_COMPILE:-aarch64-linux-gnu-}"
 
+# GIT_SHALLOW=0: fetch the full history of a shallow tree (no-op otherwise)
+git_unshallow() {
+	local dir="$1"
+
+	[ "${GIT_SHALLOW:-1}" = 1 ] && return 0
+	[ "$(git -C "${dir}" rev-parse --is-shallow-repository)" = true ] || return 0
+	echo "${dir}: GIT_SHALLOW=0, fetching the full history"
+	git -C "${dir}" fetch -q --unshallow --tags origin
+}
+
+# New <dir> for a pinned commit: with GIT_SHALLOW=1 an empty repo with origin, the commit
+# is fetched alone by git_fetch_rev(); otherwise a full clone.
+git_clone_for_rev() {
+	local dir="$1" repo="$2"
+
+	if [ "${GIT_SHALLOW:-1}" = 1 ]; then
+		git init -q "${dir}" && git -C "${dir}" remote add origin "${repo}"
+	else
+		git clone -q --no-checkout "${repo}" "${dir}"
+	fi
+}
+
+# Make commit <rev> (full SHA) available in <dir>: GIT_SHALLOW=1 fetches only that commit.
+git_fetch_rev() {
+	local dir="$1" rev="$2"
+
+	git_unshallow "${dir}" || return 1
+	git -C "${dir}" cat-file -e "${rev}^{commit}" 2>/dev/null && return 0
+	if [ "${GIT_SHALLOW:-1}" = 1 ]; then
+		git -C "${dir}" fetch -q --depth 1 origin "${rev}"
+	else
+		git -C "${dir}" fetch -q --all --tags
+	fi
+}
+
 # Clone <repo>@<branch> into <dir> if missing; no-op if already a git repo (never pulls/resets).
 ensure_src_dir() {
 	local dir="$1" repo="$2" branch="$3" label="$4"
 
 	if [ -d "${dir}/.git" ]; then
+		git_unshallow "${dir}" || exit 1
 		return 0
 	fi
 
@@ -25,7 +61,11 @@ ensure_src_dir() {
 	fi
 
 	echo "${label} source not found at ${dir}, cloning ${repo} (branch ${branch})..."
-	git clone --branch "${branch}" "${repo}" "${dir}"
+	if [ "${GIT_SHALLOW:-1}" = 1 ]; then
+		git clone --depth 1 --single-branch --branch "${branch}" "${repo}" "${dir}" || exit 1
+	else
+		git clone --branch "${branch}" "${repo}" "${dir}" || exit 1
+	fi
 }
 
 # Like ensure_src_dir() but pins to a commit (checked out with -f).
@@ -46,7 +86,7 @@ ensure_src_dir_at_rev() {
 			exit 1
 		fi
 		echo "${label} source not found at ${dir}, cloning ${repo}..."
-		git clone -q "${repo}" "${dir}"
+		git_clone_for_rev "${dir}" "${repo}" || exit 1
 	fi
 
 	# Repo URL changed since last clone (e.g. fork move) -- repoint origin instead of erroring.
@@ -55,20 +95,18 @@ ensure_src_dir_at_rev() {
 	if [ -n "${origin_url}" ] && [ "${origin_url}" != "${repo}" ]; then
 		echo "${label}: origin was ${origin_url}, repointing to ${repo}"
 		git -C "${dir}" remote set-url origin "${repo}"
-		git -C "${dir}" fetch -q origin
 	fi
 
+	git_unshallow "${dir}" || exit 1
 	have="$(git -C "${dir}" rev-parse HEAD 2>/dev/null)"
 	if [ "${have}" = "${rev}" ]; then
 		echo "${label}: already at ${rev}"
 		return 0
 	fi
 
-	if ! git -C "${dir}" cat-file -e "${rev}^{commit}" 2>/dev/null; then
-		git -C "${dir}" fetch -q --all --tags
-	fi
+	git_fetch_rev "${dir}" "${rev}" || exit 1
 	echo "${label}: checking out ${rev}"
-	git -C "${dir}" checkout -q -f "${rev}"
+	git -C "${dir}" checkout -q -f "${rev}" || exit 1
 }
 
 # Reset <dir> to a pristine checkout of its current commit (no re-clone).

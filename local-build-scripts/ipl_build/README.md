@@ -127,6 +127,8 @@ Optional environment variables:
 - `WORK_DIR` and `OUT_DIR` set the source and output directories.
 - `JOBS` sets the number of parallel make jobs.
 - `TFA_GIT` and `UBOOT_GIT` point to a local git mirror instead of GitHub.
+- `GIT_SHALLOW=0` clones TF-A and U-Boot with their full history; by default (`1`) only the
+  pinned commits are fetched.
 
 ## Flash
 

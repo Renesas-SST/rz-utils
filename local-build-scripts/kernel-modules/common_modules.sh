@@ -60,12 +60,10 @@ fetch_git() {
 	if [ ! -d "${dir}/.git" ]; then
 		echo "Cloning ${url} -> ${dir}"
 		mkdir -p "${EXT_MODULES_SRC_DIR}"
-		git clone -q "${url}" "${dir}" || exit 1
+		git_clone_for_rev "${dir}" "${url}" || exit 1
 	fi
 
-	if ! git -C "${dir}" cat-file -e "${rev}^{commit}" 2>/dev/null; then
-		git -C "${dir}" fetch -q --all --tags || exit 1
-	fi
+	git_fetch_rev "${dir}" "${rev}" || exit 1
 
 	rm -f "$(git_patched_stamp "${name}")"
 	echo "Checking out ${name} at ${rev}"
@@ -96,6 +94,9 @@ ensure_git_src() {
 	local dir="${EXT_MODULES_SRC_DIR}/${name}"
 	local have
 
+	if [ -d "${dir}/.git" ]; then
+		git_unshallow "${dir}" || exit 1
+	fi
 	have="$(git -C "${dir}" rev-parse HEAD 2>/dev/null)"
 	if [ -n "${have}" ] && [ "${have}" = "${rev}" ] &&
 	   [ "$(cat "$(git_patched_stamp "${name}")" 2>/dev/null)" = "${rev}" ]; then
