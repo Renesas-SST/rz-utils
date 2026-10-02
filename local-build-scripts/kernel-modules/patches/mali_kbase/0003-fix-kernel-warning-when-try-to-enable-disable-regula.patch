@@ -4,9 +4,6 @@ Date: Wed, 20 Aug 2025 14:02:59 +0700
 Subject: [PATCH] Fix kernel warning when try to enable/disable regulator
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
-
-Upstream-Status: Pending
-
 ---
  drivers/gpu/arm/midgard/mali_kbase_core_linux.c           | 8 ++++----
  drivers/gpu/arm/midgard/mali_kbase_defs.h                 | 3 ++-

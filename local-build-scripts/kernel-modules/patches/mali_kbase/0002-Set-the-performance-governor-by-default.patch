@@ -4,9 +4,6 @@ Date: Tue, 27 Feb 2024 18:39:28 +0700
 Subject: [PATCH 1/4] Set the performance governor by default
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
-
-Upstream-Status: Pending
-
 ---
  drivers/gpu/arm/midgard/Kbuild                           | 4 ++--
  drivers/gpu/arm/midgard/Kconfig                          | 4 ++--

@@ -4,9 +4,6 @@ Date: Tue, 27 Feb 2024 18:40:43 +0700
 Subject: [PATCH 2/4] Support for linux kernel v5.10
 
 Signed-off-by: Nhat Thieu <nhat.thieu.xr@renesas.com>
-
-Upstream-Status: Pending
-
 ---
  drivers/gpu/arm/midgard/mali_kbase_core_linux.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)

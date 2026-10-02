@@ -2,7 +2,6 @@ From 0a2c1d67daa607e2d9ba6999596e2ac6b6b56b84 Mon Sep 17 00:00:00 2001
 From: Sang Ngo <sang.ngo.yf@renesas.com>
 Date: Mon, 13 May 2024 10:18:55 +0700
 Subject: [PATCH] Add reset control for driver
-Upstream-Status: Pending
 
 ---
  .../gpu/arm/midgard/mali_kbase_core_linux.c   | 32 +++++++++++++++++++
