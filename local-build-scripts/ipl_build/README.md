@@ -13,6 +13,7 @@ RZ/V2H RDK boards from source.
 ```
 trusted-firmware-a/     TF-A patches + series (apply order)
 u-boot/                 U-Boot patches + series (apply order)
+kernel/                 kernel patch for RZ_CA55_CPU_CLOCKUP (CA55 OPPs for 1.8GHz)
 flash-writer/           Flash_Writer_SCIF_RZV2H_DEV_INTERNAL_MEMORY.mot (prebuilt, runs from
                         internal RAM, works on both boards)
 machine-features.conf   IPL options (used by build_ipl.sh)
@@ -36,7 +37,7 @@ The options and the modes below follow the RZ/V2H Multi-OS Package Quick Start G
 | `RZ_REMOTEPROC` | on | – | No change to the IPL. Set `enable_overlay_remoteproc=1` in `boot/uEnv.txt` (see below) |
 | `RZ_CM33_COLDBOOT` | off | `ENABLE_RZV2H_CM33_BOOT=1` | CM33 cold boot: CM33 boots first from xSPI, then starts CA55. BL2 and FIP move to other xSPI addresses (see Flash) |
 | `RZ_CM33_FIRMWARE_LOAD` | off | `ENABLE_CM33_FIRMWARE_LOAD=1` | BL2 loads the CM33 firmware from xSPI and starts CM33 (xSPI boot only) |
-| `RZ_CA55_CPU_CLOCKUP` | off | `ENABLE_CA55_CLOCKUP=1` | CA55 runs at 1.8GHz. The kernel needs the matching 1.8GHz OPP |
+| `RZ_CA55_CPU_CLOCKUP` | off | `ENABLE_CA55_CLOCKUP=1` | CA55 runs at 1.8GHz. Apply `kernel/0001-*-CA55-OPPs-for-1.8GHz-PLL.patch` to the kernel (see below) |
 
 Supported combinations (build_ipl.sh rejects the others):
 
@@ -56,6 +57,18 @@ To select the options, either:
 - edit `machine-features.conf` and (un)comment the `MACHINE_FEATURES:append` lines; or
 - pass `-c <file>` to use another file; or
 - pass `-f "<list>"` to override the file.
+
+## Kernel patch for CA55 1.8GHz
+
+With `RZ_CA55_CPU_CLOCKUP`, PLLCA55 runs at 1.8GHz instead of 1.7GHz, and the CA55 OPP table
+of the kernel (`r9a09g057.dtsi`) must match: 1.8GHz, 900, 450 and 225MHz.
+`kernel/0001-arm64-dts-renesas-r9a09g057-CA55-OPPs-for-1.8GHz-PLL.patch` does that. It is not in the kernel branch
+because it is wrong in the other modes. A build with `RZ_CA55_CPU_CLOCKUP` copies it to the output
+directory and notes it in `ipl-info.md`. Apply it and rebuild the device trees:
+
+```sh
+git -C <linux-rz> am <path>/0001-arm64-dts-renesas-r9a09g057-CA55-OPPs-for-1.8GHz-PLL.patch
+```
 
 ## Build with the script
 

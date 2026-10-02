@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Cong Nguyen <cong.nguyen.zn@renesas.com>
+Date: Fri, 2 Oct 2026 18:02:58 +0700
+Subject: [PATCH] arm64: dts: renesas: r9a09g057: CA55 OPPs for 1.8GHz PLLCA55
+
+With RZ_CA55_CPU_CLOCKUP, TF-A/CM33 set PLLCA55 to 1.8GHz instead of
+1.7GHz. Scale the CA55 OPP table to match: 1.8GHz, 900, 450 and
+225MHz.
+
+Apply only together with an IPL built with RZ_CA55_CPU_CLOCKUP.
+
+Signed-off-by: Cong Nguyen <cong.nguyen.zn@renesas.com>
+---
+ arch/arm64/boot/dts/renesas/r9a09g057.dtsi | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/renesas/r9a09g057.dtsi b/arch/arm64/boot/dts/renesas/r9a09g057.dtsi
+index 5bc1221f55fe..74182d61c0a8 100644
+--- a/arch/arm64/boot/dts/renesas/r9a09g057.dtsi
++++ b/arch/arm64/boot/dts/renesas/r9a09g057.dtsi
+@@ -110,23 +110,23 @@ et1_rxc_rx_clk: et1_rxc_rx_clk {
+ 	cluster0_opp: opp-table-0 {
+ 		compatible = "operating-points-v2";
+ 
+-		opp-1700000000 {
+-			opp-hz = /bits/ 64 <1700000000>;
++		opp-1800000000 {
++			opp-hz = /bits/ 64 <1800000000>;
+ 			opp-microvolt = <900000>;
+ 			clock-latency-ns = <300000>;
+ 		};
+-		opp-850000000 {
+-			opp-hz = /bits/ 64 <850000000>;
++		opp-900000000 {
++			opp-hz = /bits/ 64 <900000000>;
+ 			opp-microvolt = <800000>;
+ 			clock-latency-ns = <300000>;
+ 		};
+-		opp-425000000 {
+-			opp-hz = /bits/ 64 <425000000>;
++		opp-450000000 {
++			opp-hz = /bits/ 64 <450000000>;
+ 			opp-microvolt = <800000>;
+ 			clock-latency-ns = <300000>;
+ 		};
+-		opp-212500000 {
+-			opp-hz = /bits/ 64 <212500000>;
++		opp-225000000 {
++			opp-hz = /bits/ 64 <225000000>;
+ 			opp-microvolt = <800000>;
+ 			clock-latency-ns = <300000>;
+ 			opp-suspend;
+-- 
+2.43.0
+

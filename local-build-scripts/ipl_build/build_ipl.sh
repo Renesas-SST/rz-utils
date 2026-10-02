@@ -28,7 +28,8 @@
 #                          boot/uEnv.txt (kernel rzv2h-rdk-remoteproc.dtbo)
 #   RZ_CM33_COLDBOOT       TF-A ENABLE_RZV2H_CM33_BOOT=1 (xSPI: BL2 0x100000, FIP 0x280000)
 #   RZ_CM33_FIRMWARE_LOAD  TF-A ENABLE_CM33_FIRMWARE_LOAD=1 (xSPI: CM33 FW 0x202000)
-#   RZ_CA55_CPU_CLOCKUP    TF-A ENABLE_CA55_CLOCKUP=1
+#   RZ_CA55_CPU_CLOCKUP    TF-A ENABLE_CA55_CLOCKUP=1; the kernel needs
+#                          kernel/0001-*-CA55-OPPs-for-1.8GHz-PLL.patch
 #
 # Supported combinations (RZ/V2H Multi-OS Package Quick Start Guide):
 #   remoteproc (default)          RZ_SRAM_REGION_ACCESS RZ_REMOTEPROC
@@ -71,6 +72,8 @@ BL2_BOOT_TARGET="spi esd"
 FEATURES_FILE=${SCRIPT_DIR}/machine-features.conf
 FEATURES_ARG=
 FLASH_WRITER=${SCRIPT_DIR}/flash-writer/Flash_Writer_SCIF_RZV2H_DEV_INTERNAL_MEMORY.mot
+# Kernel patch needed with RZ_CA55_CPU_CLOCKUP (CA55 OPPs for 1.8GHz)
+CLOCKUP_KERNEL_PATCH=${SCRIPT_DIR}/kernel/0001-arm64-dts-renesas-r9a09g057-CA55-OPPs-for-1.8GHz-PLL.patch
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 log() { echo; echo "==> $*"; }
@@ -112,6 +115,9 @@ check_features() {
 		for f in RZ_CM33_FIRMWARE_LOAD RZ_CA55_CPU_CLOCKUP; do
 			has_feature "${f}" && die "RZ_CM33_COLDBOOT cannot be used with ${f}"
 		done
+	fi
+	if has_feature RZ_CA55_CPU_CLOCKUP && [ ! -f "${CLOCKUP_KERNEL_PATCH}" ]; then
+		die "RZ_CA55_CPU_CLOCKUP: kernel patch ${CLOCKUP_KERNEL_PATCH} not found"
 	fi
 	if has_feature RZ_CA55_CPU_CLOCKUP && ! has_feature RZ_CM33_FIRMWARE_LOAD; then
 		echo "WARNING: RZ_CA55_CPU_CLOCKUP is normally used with RZ_CM33_FIRMWARE_LOAD" >&2
@@ -278,6 +284,18 @@ write_info() {
 		else
 			echo "Do **not** set \`enable_overlay_remoteproc\` (remoteproc DT overlay)."
 		fi
+		if has_feature RZ_CA55_CPU_CLOCKUP; then
+			echo
+			echo "## Kernel"
+			echo
+			echo "**Required:** CA55 runs at 1.8GHz. Apply \`$(basename "${CLOCKUP_KERNEL_PATCH}")\`"
+			echo "(in this directory) to the kernel and rebuild the device trees, or cpufreq"
+			echo "uses the OPPs of 1.7GHz:"
+			echo
+			echo "\`\`\`sh"
+			echo "git -C <linux-rz> am $(basename "${CLOCKUP_KERNEL_PATCH}")"
+			echo "\`\`\`"
+		fi
 		echo
 		echo "## Files"
 		echo
@@ -288,6 +306,8 @@ write_info() {
 		done
 		echo "| \`fip-${machine}.srec\` / \`.bin\` | BL31 + U-Boot |"
 		[ -f "${FLASH_WRITER}" ] && echo "| \`$(basename "${FLASH_WRITER}")\` | Flash Writer |"
+		has_feature RZ_CA55_CPU_CLOCKUP && \
+			echo "| \`$(basename "${CLOCKUP_KERNEL_PATCH}")\` | kernel patch, CA55 OPPs for 1.8GHz |"
 		return 0
 	} > "${out}/ipl-info.md"
 }
@@ -349,11 +369,17 @@ build_board() {
 		"${out}/fip-${machine}.bin" "${out}/fip-${machine}.srec"
 
 	[ -f "${FLASH_WRITER}" ] && cp "${FLASH_WRITER}" "${out}/"
+	has_feature RZ_CA55_CPU_CLOCKUP && cp "${CLOCKUP_KERNEL_PATCH}" "${out}/"
 	write_info "${out}" "${machine}" "${tfa_board}" "${tfa_opts}"
 
 	log "[${machine}] Done: ${out}"
 	ls -l "${out}"
 	echo; cat "${out}/ipl-info.md"
+	if has_feature RZ_CA55_CPU_CLOCKUP; then
+		echo
+		echo "WARNING: RZ_CA55_CPU_CLOCKUP: apply $(basename "${CLOCKUP_KERNEL_PATCH}")" >&2
+		echo "         (in ${out}) to the kernel, CA55 runs at 1.8GHz" >&2
+	fi
 }
 
 KEEP=0
