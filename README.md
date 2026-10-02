@@ -1,33 +1,31 @@
 # RZ Utility
 
-Useful scripts for RZ projects.
-
-This repository holds scripts and tools to build various software stacks for RZ platforms.
+Build scripts for the RZ/V2H RDK (ver1 16GB and ver101 8GB), the only supported board.
 
 ## Hierarchy
 
 ```
 .
-├── local-build-script/
+├── LICENSE
 ├── README.md
-├── tools/
-└── universal-scripts/
-
-4 directories, 1 file
+├── local-build-scripts/   # kernel, out-of-tree kernel modules and IPL (BL2 + FIP)
+└── vendor/                # proprietary packages you download yourself (not committed)
 ```
 
 ### local-build-scripts
 
-This directory contains build scripts for all software stacks of the RZ Board Support Package (BSP).
+Builds the software for the board from source:
+- the Linux kernel: Image, device trees and DT overlays, in-tree modules;
+- the out-of-tree kernel modules: mmngr, mmngrbuf, vspm, vspm_if, mali_kbase, uvcs_drv;
+- the IPL: BL2 and FIP with BL31/U-Boot, for RDK ver1/ver101, in each RZ/V2H Multi-OS mode.
 
-### tools
+Entry point: `local-build-scripts/main_build.sh`, configured by `local-build-scripts/config.ini`.
+See [`local-build-scripts/README.md`](local-build-scripts/README.md).
 
-A collection of useful tools for RZ platforms.
+### vendor
 
-### universal-scripts
-
-Scripts for flashing RZ images, compatible with both Windows and Linux.
+`mali_kbase` and `uvcs_drv` need proprietary tarballs that cannot be committed. Download them
+and put them here, see [`vendor/README.md`](vendor/README.md).
 
 > [!IMPORTANT]
-> Refer to the README in each folder to understand the usage and configuration specific to scripts and tools.
-
+> Refer to the README in each folder for the usage and configuration of its scripts.
