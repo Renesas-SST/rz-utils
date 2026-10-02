@@ -1,0 +1,12 @@
+diff --git a/configs/rzv2h-evk-ver1_defconfig b/configs/rzv2h-evk-ver1_defconfig
+index e3f62b8d1c..8ed90d90a1 100644
+--- a/configs/rzv2h-evk-ver1_defconfig
++++ b/configs/rzv2h-evk-ver1_defconfig
+@@ -98,6 +98,7 @@ CONFIG_CMD_SPI=y
+ CONFIG_SPI_FLASH_STMICRO=y
+ CONFIG_DM_SPI_FLASH=y
+ CONFIG_ENV_SECT_SIZE=0x20000
++CONFIG_LMB_MAX_REGIONS=16
+ #Core UEFI features:
+ CONFIG_BOOTM_EFI=y
+ CONFIG_CMD_BOOTEFI=y

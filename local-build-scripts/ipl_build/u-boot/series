@@ -1,0 +1,6 @@
+# U-Boot 8e0b7870026f1c7debdc503435fa51bfa3ae7006, apply in this order
+# Multi-OS support
+0001-disable-reserved-area-check.patch
+0002-raise-config-lmb-max-region-to-16.patch
+# RZ/V2H RDK ver1 and ver101 boards
+0002-board-renesas-rzv2h-dev-add-RZ-V2H-RDK-ver1-and-ver101-boards.patch

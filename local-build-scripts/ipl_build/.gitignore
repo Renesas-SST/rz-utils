@@ -1,0 +1,4 @@
+# Local sources and build output of build_ipl.sh (WORK_DIR / OUT_DIR defaults):
+# TF-A/U-Boot checkouts and the built IPL files, never committed
+/work/
+/out/

@@ -1,0 +1,64 @@
+From 3ffc7535022e3f528f9182301ffa21950750a3a0 Mon Sep 17 00:00:00 2001
+From: Shuichi Sueki <shuichi.sueki.dz@hitachi.com>
+Date: Thu, 13 Feb 2025 19:07:15 +0900
+Subject: [PATCH] ca55-cpu-clockup
+
+---
+ plat/renesas/rz/soc/v2h/bl2_plat_setup.c | 27 ++++++++++++++++++++++++
+ 1 file changed, 27 insertions(+)
+
+diff --git a/plat/renesas/rz/soc/v2h/bl2_plat_setup.c b/plat/renesas/rz/soc/v2h/bl2_plat_setup.c
+index f61916cc9..6432927bd 100644
+--- a/plat/renesas/rz/soc/v2h/bl2_plat_setup.c
++++ b/plat/renesas/rz/soc/v2h/bl2_plat_setup.c
+@@ -57,6 +57,16 @@ int bl2_plat_handle_pre_image_load(unsigned int image_id)
+ 			flush_dcache_range((uintptr_t)PARAMS_BASE, sizeof(bl2_to_bl31_params_mem_t));
+ 			bl2_enter_bl31(&bl_mem_params->ep_info);
+ 		}
++		else
++		{
++#if PLAT_M33_BOOT_SUPPORT
++#if PLAT_CA55_CLOCKUP
++			if (!sys_is_m33_core_booted()){
++				bl_mem_params->image_info.h.attr |= IMAGE_ATTRIB_SKIP_LOADING;
++			}
++#endif
++#endif
++		}
+ 	}
+ #if PLAT_M33_BOOT_SUPPORT
+ 	if (image_id == BL22_IMAGE_ID) {
+@@ -69,6 +79,20 @@ int bl2_plat_handle_pre_image_load(unsigned int image_id)
+ 	}
+ #endif
+ 
++#if PLAT_M33_BOOT_SUPPORT
++#if PLAT_CA55_CLOCKUP
++	if(image_id == BL32_IMAGE_ID || image_id == BL33_IMAGE_ID) {
++
++		if (!sys_is_m33_core_booted()) {
++			bl_mem_params->image_info.h.attr |= IMAGE_ATTRIB_SKIP_LOADING;
++		}
++
++		if (bl2_plat_get_boot_mode() == RZ_WARM_BOOT) {
++			bl_mem_params->image_info.h.attr |= IMAGE_ATTRIB_SKIP_LOADING;
++		}
++	}
++#endif
++#endif
+ 	return 0;
+ }
+ 
+@@ -200,6 +224,9 @@ void bl2_el3_plat_prepare_exit(void)
+ 		bl_mem_params_node_t *bl22_mem_params = get_bl_mem_params_node(BL22_IMAGE_ID);
+ 		if (bl22_mem_params != NULL) {
+ 			sys_m33_core_boot_on((bl22_mem_params->ep_info).pc);
++#if PLAT_CA55_CLOCKUP
++			wfi();
++#endif
+ 		}
+ 	}
+ }
+-- 
+2.25.1
+

@@ -1,0 +1,8 @@
+# TF-A 3c83dd6f498574d7e8d029c4b1545f36c6d6e083, apply in this order
+# RZ/V2H RDK boards rdk_1 (ver1) and rdk_101 (ver101)
+0001-plat-renesas-rz-v2h-add-RDK-ver1-and-ver101-boards.patch
+# Multi-OS support (enabled with the options in machine-features.conf)
+0001-Change-MCPU-sram-to-unpriv.patch
+0002-cm33boot-suppot.patch
+0003-cm33-firmware-load.patch
+0004-ca55-cpu-clockup.patch

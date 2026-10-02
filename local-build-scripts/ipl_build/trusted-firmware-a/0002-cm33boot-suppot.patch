@@ -1,0 +1,29 @@
+From 35758c59a8ed7060b52851d0136e1f4ba988e70d Mon Sep 17 00:00:00 2001
+From: Shuichi Sueki <shuichi.sueki.dz@hitachi.com>
+Date: Thu, 13 Feb 2025 17:19:12 +0900
+Subject: [PATCH] cm33boot-support
+
+---
+ plat/renesas/rz/soc/v2h/include/rz_soc_def.h | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/plat/renesas/rz/soc/v2h/include/rz_soc_def.h b/plat/renesas/rz/soc/v2h/include/rz_soc_def.h
+index 635b8f1b4..f45fe231c 100644
+--- a/plat/renesas/rz/soc/v2h/include/rz_soc_def.h
++++ b/plat/renesas/rz/soc/v2h/include/rz_soc_def.h
+@@ -87,7 +87,12 @@
+  */
+ #define RZV2H_FIP_SIZE_MAX			UL(0x001A0000)
+ 
++#if ENABLE_RZV2H_CM33_BOOT
++#define RZV2H_SPIROM_CR8_FSP_END_OFFSET	UL(0x00280000)
++#define RZV2H_SPIROM_FIP_BASE		(RZV2H_XSPI_MEMORY_MAP_BASE + RZV2H_SPIROM_CR8_FSP_END_OFFSET)
++#else /* #if ENABLE_RZV2H_CM33_BOOT */
+ #define RZV2H_SPIROM_FIP_BASE		(RZV2H_XSPI_MEMORY_MAP_BASE + RZV2H_BL2_END_OFFSET)
++#endif /*#if ENABLE_RZV2H_CM33_BOOT */
+ #define RZV2H_SPIROM_FIP_SIZE		RZV2H_FIP_SIZE_MAX
+ 
+ #define RZV2H_EMMC_FIP_BASE			RZV2H_BL2_END_OFFSET
+-- 
+2.25.1
+

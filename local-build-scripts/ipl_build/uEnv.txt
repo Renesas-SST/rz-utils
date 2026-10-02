@@ -1,0 +1,34 @@
+# uEnv.txt for RZ/V2H RDK
+#
+# Copy to the boot partition: mmc0 partition 2, file boot/uEnv.txt
+# U-Boot imports it before booting, so every variable here overrides the
+# default environment. Keep LF line endings (no CRLF) and no blank values:
+# a line "name=" deletes that variable.
+#
+# ---------------------------------------------------------------------------
+# DT overlays (boot/dtb/renesas/overlays/*.dtbo), set to 1 or yes to enable
+# ---------------------------------------------------------------------------
+#enable_overlay_audio_codec=1
+enable_overlay_can=1
+#enable_overlay_spi=1
+# remoteproc (CM33, CR8 core0/core1): only with the remoteproc IPL
+# (RZ_SRAM_REGION_ACCESS + RZ_REMOTEPROC). Leave it off for CM33 cold boot,
+# CM33 firmware load/CA55 1.8GHz or CM33/CR8 started from U-Boot.
+enable_overlay_remoteproc=1
+#
+# ---------------------------------------------------------------------------
+# Root filesystem (default: /dev/mmcblk0p2 on microSD)
+# ---------------------------------------------------------------------------
+# rootfs on NVMe SSD (PCIe CN4); Image, DT and this file stay on microSD.
+# Kernel needs RZ/V2H PCIe and NVMe drivers built-in (=y).
+#rootdev=/dev/nvme0n1p2
+# or, independent of device enumeration order:
+#rootdev=PARTUUID=xxxxxxxx-02
+#
+# ---------------------------------------------------------------------------
+# Optional overrides (defaults shown)
+# ---------------------------------------------------------------------------
+# dtbfile is set by U-Boot for each board (rzv2h-rdk-ver1.dtb or
+# rzv2h-rdk-ver101.dtb); do not set it here so this file works on both.
+#mmc_overlays=boot/dtb/renesas/overlays
+#dtbo_addr=0x48040000
