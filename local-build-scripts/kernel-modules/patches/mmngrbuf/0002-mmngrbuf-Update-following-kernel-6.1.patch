@@ -3,8 +3,6 @@ From: trungvanle <trung.le.xk@renesas.com>
 Date: Thu, 25 Apr 2024 19:59:34 +0700
 Subject: [PATCH] mmngrbuf: Update following kernel 6.1
 
-Upstream-Status: Pending
-
 The issues that cause build error:
 - compat_alloc_user_space() is no longer available from kernel 5.15 [1]
 - vmap & vunmap function pointer are changed from kernel 6.0 ([2], [3], [4])
@@ -191,3 +189,4 @@ index a50a196..ccc41d7 100644
  static int mm_init(void);
 -- 
 2.25.1
+

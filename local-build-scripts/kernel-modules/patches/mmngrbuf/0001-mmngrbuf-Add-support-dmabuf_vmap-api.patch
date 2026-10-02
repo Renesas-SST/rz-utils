@@ -3,8 +3,6 @@ From: Hien Huynh <hien.huynh.px@renesas.com>
 Date: Mon, 11 Sep 2023 17:05:51 +0700
 Subject: [PATCH] mmngrbuf: Add support dmabuf_vmap api
 
-Upstream-Status: Pending
-
 Add virtual mapping for the buffer into kernel address space.
 
 Signed-off-by: Hien Huynh <hien.huynh.px@renesas.com>
@@ -29,3 +27,4 @@ index 5ffee15..b9f76fb 100644
  static void dmabuf_vunmap(struct dma_buf *buf, void *vaddr)
 -- 
 2.25.1
+

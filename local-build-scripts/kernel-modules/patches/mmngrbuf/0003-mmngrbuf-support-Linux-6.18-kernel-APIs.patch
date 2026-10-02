@@ -1,0 +1,92 @@
+From: Cong Nguyen <congnguyenvan002@gmail.com>
+Subject: [PATCH] mmngrbuf: support Linux 6.18 kernel APIs
+
+Port the latest meta-rz-bsp mmngrbuf (0001-0002) to Linux 6.18:
+- vma->vm_flags is read-only since 6.3, use vm_flags_set().
+- platform_driver .remove returns void since 6.11.
+- MODULE_IMPORT_NS() takes a string literal since 6.13.
+- dma_buf_(un)map_attachment() require the dma_resv lock to be held;
+  mmngrbuf does not hold it, so use the _unlocked variants (fixes the
+  lockdep WARN in dma_buf_map_attachment on import/close).
+
+Upstream-Status: Pending
+---
+--- a/mmngr_drv/mmngrbuf/mmngrbuf-module/files/mmngrbuf/drv/mmngr_buf_drv.c
++++ b/mmngr_drv/mmngrbuf/mmngrbuf-module/files/mmngrbuf/drv/mmngr_buf_drv.c
+@@ -93,7 +93,7 @@
+ 	if (priv) {
+ 		if (priv->sgt) {
+ 			pr_warn("%s unmap\n", __func__);
+-			dma_buf_unmap_attachment(priv->attach,
++			dma_buf_unmap_attachment_unlocked(priv->attach,
+ 				priv->sgt, DMA_BIDIRECTIONAL);
+ 		}
+ 
+@@ -236,7 +236,7 @@
+ 	pgprot_t prot = vm_get_page_prot(vma->vm_flags);
+ 	struct MM_BUF_PRIVATE *priv = buf->priv;
+ 
+-	vma->vm_flags |= (VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
++	vm_flags_set(vma, VM_IO | VM_DONTEXPAND | VM_DONTDUMP);
+ 	vma->vm_private_data = priv;
+ 	vma->vm_page_prot = pgprot_writecombine(prot);
+ 
+@@ -357,7 +357,7 @@
+ 	if (IS_ERR(priv->attach))
+ 		goto err_attach;
+ 
+-	priv->sgt = dma_buf_map_attachment(priv->attach, DMA_BIDIRECTIONAL);
++	priv->sgt = dma_buf_map_attachment_unlocked(priv->attach, DMA_BIDIRECTIONAL);
+ 	if (IS_ERR_OR_NULL(priv->sgt))
+ 		goto err_detach;
+ 
+@@ -371,7 +371,7 @@
+ 
+ 	return 0;
+ err_unmap:
+-	dma_buf_unmap_attachment(priv->attach, priv->sgt, DMA_BIDIRECTIONAL);
++	dma_buf_unmap_attachment_unlocked(priv->attach, priv->sgt, DMA_BIDIRECTIONAL);
+ 	priv->sgt = NULL;
+ err_detach:
+ 	dma_buf_detach(priv->dma_buf, priv->attach);
+@@ -385,7 +385,7 @@
+ 
+ static int mm_ioc_import_end(struct MM_BUF_PRIVATE *priv)
+ {
+-	dma_buf_unmap_attachment(priv->attach, priv->sgt, DMA_BIDIRECTIONAL);
++	dma_buf_unmap_attachment_unlocked(priv->attach, priv->sgt, DMA_BIDIRECTIONAL);
+ 	dma_buf_detach(priv->dma_buf, priv->attach);
+ 	dma_buf_put(priv->dma_buf);
+ 	priv->sgt = NULL;
+@@ -411,13 +411,11 @@
+ 	return 0;
+ }
+ 
+-static int mm_remove(struct platform_device *pdev)
++static void mm_remove(struct platform_device *pdev)
+ {
+ 	misc_deregister(&misc);
+ 
+ 	kfree(mm_buf_drvdata);
+-
+-	return 0;
+ }
+ 
+ static const struct of_device_id mm_of_match[] = {
+@@ -449,4 +447,4 @@
+ module_exit(mm_exit);
+ 
+ MODULE_LICENSE("Dual MIT/GPL");
+-MODULE_IMPORT_NS(DMA_BUF);
++MODULE_IMPORT_NS("DMA_BUF");
+--- a/mmngr_drv/mmngrbuf/mmngrbuf-module/files/mmngrbuf/include/mmngr_buf_private.h
++++ b/mmngr_drv/mmngrbuf/mmngrbuf-module/files/mmngrbuf/include/mmngr_buf_private.h
+@@ -102,7 +102,7 @@
+ static int dmabuf_vmap(struct dma_buf *buf, struct iosys_map *map);
+ static void dmabuf_vunmap(struct dma_buf *buf, struct iosys_map *map);
+ static int mm_probe(struct platform_device *pdev);
+-static int mm_remove(struct platform_device *pdev);
++static void mm_remove(struct platform_device *pdev);
+ static int mm_init(void);
+ static void mm_exit(void);
+ static int mm_ioc_export_start(int __user *arg, struct MM_BUF_PRIVATE *priv);
