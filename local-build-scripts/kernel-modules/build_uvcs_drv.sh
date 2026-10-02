@@ -17,9 +17,9 @@ if [ -z "${KERNEL_DIR:-}" ]; then
 fi
 
 NAME="uvcs_drv"
-UVCS_TAR="${UVCS_TAR:-${SCRIPT_DIR}/../../../vendor/uvcs_kernel_package.tar.bz2}"
+UVCS_TAR="${UVCS_TAR:-${SCRIPT_DIR}/../../vendor/uvcs_kernel_package_v4.3.4.0.tar.bz2}"
 URL="${UVCS_URL:-file://${UVCS_TAR}}"
-SHA256="${UVCS_SHA256:-ccb81b44a50e94c12b7b8efb52a0cab5419d388782d53e3bb738d4c887fd145b}"
+SHA256="${UVCS_SHA256:-a719268bbab3ce13f078158d3ee9b3e7ad1d86c7c04ab8e8ff776e540ecb0738}"
 SRC_DIR="${EXT_MODULES_SRC_DIR}/${NAME}"
 PKG_DIR="${SRC_DIR}/uvcs_kernel_package"
 BUILD_SUBDIR="${PKG_DIR}/src/makefile"
