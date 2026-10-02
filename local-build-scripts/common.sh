@@ -160,7 +160,7 @@ Note: Before executing the build, please make sure that you have updated the con
 "
 # Help message
 show_help() {
-        echo 'Error: Invalid Syntax!'
-        echo "${_usage}"
-        exit 1
+	echo 'Error: Invalid Syntax!'
+	echo "${_usage}"
+	exit 1
 }
