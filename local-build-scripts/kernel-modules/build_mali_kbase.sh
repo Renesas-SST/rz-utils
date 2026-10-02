@@ -16,7 +16,7 @@ if [ -z "${KERNEL_DIR:-}" ]; then
 fi
 
 NAME="mali_kbase"
-MALI_DDK_TAR="${MALI_DDK_TAR:-${SCRIPT_DIR}/../../../vendor/mali-g31_km_v1.3.0.tar.gz}"
+MALI_DDK_TAR="${MALI_DDK_TAR:-${SCRIPT_DIR}/../../vendor/mali-g31_km_v1.3.0.tar.gz}"
 URL="${MALI_DDK_URL:-file://${MALI_DDK_TAR}}"
 SHA256="${MALI_DDK_SHA256:-30d9625e33ab4a52ab9c995bf0e218d65cc909c320bf85c0e60f3572962fb389}"
 SRC_DIR="${EXT_MODULES_SRC_DIR}/${NAME}"
