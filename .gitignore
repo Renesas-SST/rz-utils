@@ -1,0 +1,3 @@
+# Proprietary / licensed packages: never commit, see vendor/README.md
+vendor/*
+!vendor/README.md
