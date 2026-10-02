@@ -1,4 +1,4 @@
-From: Cong Nguyen <congnguyenvan002@gmail.com>
+From: Cong Nguyen <cong.nguyen.zn@renesas.com>
 Subject: [PATCH] mmngrbuf: support Linux 6.18 kernel APIs
 
 Port the latest meta-rz-bsp mmngrbuf (0001-0002) to Linux 6.18:
@@ -10,6 +10,7 @@ Port the latest meta-rz-bsp mmngrbuf (0001-0002) to Linux 6.18:
   lockdep WARN in dma_buf_map_attachment on import/close).
 
 Upstream-Status: Pending
+Signed-off-by: Cong Nguyen <cong.nguyen.zn@renesas.com>
 ---
 --- a/mmngr_drv/mmngrbuf/mmngrbuf-module/files/mmngrbuf/drv/mmngr_buf_drv.c
 +++ b/mmngr_drv/mmngrbuf/mmngrbuf-module/files/mmngrbuf/drv/mmngr_buf_drv.c

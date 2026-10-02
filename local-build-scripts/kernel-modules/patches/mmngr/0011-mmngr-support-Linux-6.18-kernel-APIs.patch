@@ -1,4 +1,4 @@
-From: Cong Nguyen <congnguyenvan002@gmail.com>
+From: Cong Nguyen <cong.nguyen.zn@renesas.com>
 Subject: [PATCH] mmngr: support Linux 6.18 kernel APIs
 
 Port the latest meta-rz-bsp mmngr (0001-0010) to Linux 6.18:
@@ -10,6 +10,7 @@ Port the latest meta-rz-bsp mmngr (0001-0010) to Linux 6.18:
 - platform_driver .remove returns void since 6.11.
 
 Upstream-Status: Pending
+Signed-off-by: Cong Nguyen <cong.nguyen.zn@renesas.com>
 ---
 --- a/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c
 +++ b/mmngr_drv/mmngr/mmngr-module/files/mmngr/drv/mmngr_drv.c

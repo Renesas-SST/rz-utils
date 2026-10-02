@@ -1,4 +1,4 @@
-From: Cong Nguyen <congnguyenvan002@gmail.com>
+From: Cong Nguyen <cong.nguyen.zn@renesas.com>
 Subject: [PATCH] uvcs_drv: support Linux 6.18 kernel APIs (uvcs_kernel_package v4.3.4.0)
 
 v4.3.4.0 builds as-is up to 6.12. For 6.18:
@@ -8,6 +8,7 @@ v4.3.4.0 builds as-is up to 6.12. For 6.18:
   use devm_reset_control_array_get_exclusive(), same semantics
 
 Upstream-Status: Pending
+Signed-off-by: Cong Nguyen <cong.nguyen.zn@renesas.com>
 ---
 diff --git a/src/lkm/uvcs_lkm.c b/src/lkm/uvcs_lkm.c
 index abdb0ce..3c5a370 100755
